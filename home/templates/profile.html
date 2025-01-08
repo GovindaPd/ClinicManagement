@@ -1,103 +1,51 @@
 {% extends 'layout.html' %}
             {% block content %}
-            <div class="p-5">
+                <div class="justify-content-center">
+                    <h3 class="" style="">User Profile</h3>
+
+                    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" id="profile_form">
+                        {% csrf_token %}
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6"><label class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username" placeholder="Username" style="width: 100%;"
+                                     maxlength="50" oninput="validateInput(this)" value="{{request.user.username}}" required disabled>
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Email</label>
+                                <input type="text" class="form-control" name="email" placeholder="Email" style="width: 100%;" 
+                                    maxlength="100" value="{{request.user.email}}" oninput="validateInput(this)" required disabled>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6"><label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="first_name" placeholder="First Name" style="width: 100%;" 
+                                    maxlength="25" {% if request.user.first_name %}value="{{request.user.first_name}}"{% endif %} required>
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="last_name" placeholder="Last Name" style="width: 100%;" 
+                                    maxlength="25" {% if request.user.last_name %}value="{{request.user.last_name}}"{% endif %}  required>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">                                                
+                            <div class="col-sm-6"><label class="form-label">Profile Image</label>
+                                <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" 
+                                accept="image/png, image/jpeg">
+                          </div>
+                          {% if request.user.profile_img %}
+                          <div style="margin-top:20px; margin-left:10px;">
+                            <img src="{{request.user.profile_img.url}}" style="width:50px; height:50px;">
+                          </div>
+                          {% endif %}
+                        </div>
+                        <button class="btn btn-primary" id="update_profile" name="profile_submit" type="submit" style="margin-top: 10px;">Update Profile</button>
+                    </form>
+                </div>
+
+            {% endblock %}
                 {% comment %} <button class="btn btn-success btn-lg" data-toggle="modal" data-target="#ClinicModal">
                     Open Contact Form
                 </button> {% endcomment %}
                 
-                            <div class="modal fade" role="dialog" tabindex="-2" id="ProfileModal">
-                                <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h4 class="modal-title" style="font-size: 17px;"> User Profile </h4>
-                                            <button type="button" class="btn-close" data-dismiss="modal" data-toggle="modal"  aria-label="Close">X</button>
-                                        </div>
-                                        <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" id="profile_form">
-                                          {% csrf_token %}
-                                          <div class="modal-body" style="text-align: left;">
-                                              <div class="row" style="margin-top: 10px;">
-                                                  <div class="col"><label class="form-label">First Name</label>
-                                                      <input type="text" class="form-control" name="first_name" placeholder="First Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled>
-                                                  </div>
-                                                  <div class="col"><label class="form-label">Last Name</label>
-                                                    <input type="text" class="form-control" name="last_name" placeholder="Last Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled>
-                                                </div>
-                                              </div>
-                                              <div class="row" style="margin-top: 10px;">                                                
-                                                  <div class="col"><label class="form-label">Profile Image</label>
-                                                    <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" accept="image/png, image/jpeg" required onchange="validateFileSize(event)">
-                                                </div>
-                                              </div>
-                                              
-                                            <div class="modal-footer">
-                                                <button class="btn btn-primary" id="edit_clinic_detatils" name="edit" type="button">Edit</button>
-                                                <button class="btn btn-primary" id="add_clinic_detatils" name="submit" type="submit" style="display:none;">Save</button>
-                                            </div>
-                                      </form>
-                                    </div>
-                                </div>
-                            </div>
-                            <script>
-                                document.getElementById('edit_clinic_detatils').addEventListener('click', function () {
-                                    const formFields = document.querySelectorAll('#profile_form input, #profile_form select, #profile_form textarea');
-                                    
-                                    formFields.forEach(field => {
-                                        if ( field.type != 'hidden'){
-                                            field.disabled = !field.disabled;
-                                        }
-                                    });
-                                    document.getElementById('add_clinic_detatils').style.display = 'block';
-                                    this.style.display = 'none';
-                                });
-                                
-                                /* selecet field javascript*/
-                                document.addEventListener("DOMContentLoaded", () => {
-                                    const stateSelect = document.getElementById('state');
-                                    const citySelect = document.getElementById('city');
-                                
-                                    // Fetch states when the page loads or state field is clicked
-                                    stateSelect.addEventListener('click', () => {
-                                        if (stateSelect.options.length > 1) return; // Prevent multiple fetches
-                                        fetch("{% url 'country_states' %}") 
-                                            .then(response => response.json())
-                                            .then(states => {
-                                                // Populate state options
-                                                states['region'].forEach(state => {
-                                                    const option = document.createElement('option');
-                                                    option.value = state.id;
-                                                    option.textContent = state.name;
-                                                    stateSelect.appendChild(option);
-                                                });
-                                            })
-                                            .catch(error => console.error('Error fetching states:', error));
-                                    });
-                                
-                                    // Fetch cities based on selected state
-                                    stateSelect.addEventListener('change', () => {
-                                        const stateId = stateSelect.value;
-                                        citySelect.innerHTML = '<option value="">Select a city</option>'; // Reset city options
-                                        if (!stateId) {
-                                            citySelect.disabled = true;
-                                            return;
-                                        }
-                                        
-                                        fetch(`/state-cities/${stateId}`) // Replace with your API endpoint for cities
-                                            .then(response => response.json())
-                                            .then(cities => {
-                                                // Populate city options
-                                                cities['cities'].forEach(city => {
-                                                    const option = document.createElement('option');
-                                                    option.value = city.id;
-                                                    option.textContent = city.name;
-                                                    citySelect.appendChild(option);
-                                                });
-                                                citySelect.disabled = false;
-                                            })
-                                            .catch(error => console.error('Error fetching cities:', error));
-                                    });
-                                });
-
-                            </script>
+                            
                 {% comment %} <table class="table table-bordered">
                     <thead>
                     <tr>
@@ -128,9 +76,6 @@
                     </tr>
                     </tbody>
                 </table> {% endcomment %}
-                {% comment %} <form metod="POST" enctype="multipart/form-data"> 
-                    {% csrf_token %}
-
-                </form> {% endcomment %}
-            </div>
-            {% endblock %}
+            
+    
+    

@@ -12,6 +12,8 @@ urlpatterns = [
     path('change-password/<str:token>/', views.change_password, name='change_password'),
 
     path('profile/', views.profile, name='profile'),
+    path('clinic/', views.clinic, name='clinic'),
+    
     path('all_users/', views.all_users, name='all_users'),
     path('country-states/', views.country_states, name='country_states'),
     path('state-cities/<int:region>/', views.state_cities, name='state_cities'),

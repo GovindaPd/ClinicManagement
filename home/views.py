@@ -5,12 +5,18 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 # from django.core.validators import V
 from django.core.mail import send_mail
+from django.core.files.storage import default_storage
+from django.utils.timezone import now
 from .models import  User, Clinic, Patient, Prescription, Invoice
 from random import randint
 
 from .custom_token_generator import TokenGenerator
 from cities_light.models import Country, Region, City 
 from .serializers import RegionSerializers, CitySerializers
+
+
+
+
 
 def login_in(request):
     if request.method == 'GET':
@@ -28,7 +34,7 @@ def login_in(request):
                
         if user.is_password_reset:
             messages.error(request, "Please reset your password")
-            return render(request, '')
+            return redirect('reset_password')
 
         login(request, user)
 
@@ -38,10 +44,9 @@ def login_in(request):
         if user.is_admin:
             return redirect('home')
 
-        if user.is_new_staff:
-            return redirect('home')
-        
-    
+        # if user.is_new_staff:
+        #     return redirect('home')
+         
 
 
 @login_required(login_url='login')
@@ -55,7 +60,6 @@ def logout_user(request):
 def generate_otp():
     otp = randint(10000,99999)
     return otp
-
 
 
 def forget_password(request):
@@ -156,7 +160,9 @@ def change_password(request, token):
 
 @login_required(login_url='login')
 def index(request):
-    return render(request, 'layout.html')
+    if request.method == 'GET':
+        clinic = request.user.clinic.all().first()
+        return render(request, 'index.html', {'clinic':clinic})
 
 
 
@@ -188,18 +194,60 @@ def patients(request):
 
 @login_required(login_url='login')
 def profile(request):
-    if request.method == 'GET':
-        return render(request, 'profile.html')
-    
     if request.method == 'POST':
-        name = request.POST.get('name')
-        state = request.POST.get('state')
-        city = request.POST.get('city')
-        pincode = request.POST.get('pincode')
-        address = request.POST.get('address')
-        email = request.POST.get('email')
-        number = request.POST.get('number')
-        specilization = request.POST.get('specilization')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+
+        user = User.objects.get(username=request.user.username)
+        user.first_name = first_name
+        user.last_name = last_name
+
+        if 'profile_img' in request.FILES:
+            profile_img = request.FILES['profile_img']
+            if user.profile_img:
+                default_storage.delete(user.profile_img.path)
+                
+            user.profile_img = profile_img
+
+        user.save()
+        messages.success(request, 'Profile updated successfully.')
+        return redirect('profile')
+
+    return render(request, 'profile.html')
+
+
+
+@login_required(login_url='login')
+def clinic(request):
+    if request.method == 'POST':
+        name        = request.POST.get('name')
+        state       = request.POST.get('state')
+        city        = request.POST.get('city')
+        pincode     = request.POST.get('pincode')
+        address     = request.POST.get('address')
+        email       = request.POST.get('email')
+        number      = request.POST.get('number')
+        specializations = request.POST.get('specializations')
+
+        clinic = Clinic.objects.get(user=request.user)
+        clinic.name     = name
+        clinic.state    = state
+        clinic.city     = city
+        clinic.pincode  = pincode
+        clinic.address  = address
+        clinic.email    = email
+        clinic.number   = number
+        clinic.specializations = specializations
+        try:
+            clinic.save()
+            messages.success(request, 'Clinic details updated successfully.')
+        except Exception as error:
+            print("------------------------")
+            print(error)
+            print("-----------------------")
+            messages.error(request, 'Error with form data.')
+        return redirect('home')
+
 
 
 def country_states(request):
@@ -218,12 +266,12 @@ def state_cities(request, region=None):
           return JsonResponse({'cities':[]}, status=200)
           
 
-@login_required(login_url='login')
-def edit_profile(request):
-    if request.method == 'GET':
-        return render(request, '')
+# @login_required(login_url='login')
+# def edit_profile(request):
+#     if request.method == 'GET':
+#         return render(request, '')
     
-    if request.method == 'POST':
-        return render(request, 'edit_profile.html')
+#     if request.method == 'POST':
+#         return render(request, 'edit_profile.html')
     
         

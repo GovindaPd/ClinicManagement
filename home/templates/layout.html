@@ -21,7 +21,18 @@
 
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    <style>
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+        }
 
+        /* Firefox */
+        input[type=number] {
+        -moz-appearance: textfield;
+        }
+    </style>
     {% block staticblock %}
     {% endblock %}
 </head>
@@ -47,7 +58,7 @@
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
-                <a class="nav-link" href="index.html">
+                <a class="nav-link" href="{% url 'home' %}">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Dashboard</span></a>
             </li>
@@ -350,7 +361,7 @@
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ request.user.username }}</span>
                                 {% if request.user.profile_img %}
                                 <img class="img-profile rounded-circle"
-                                    src="img/undraw_profile.svg" alt="profile image">
+                                    src="{{request.user.profile_img.url}}" alt="profile image">
                                 {% else %}
                                 <div class="img-profile rounded-circle" style="text-align: center; font-size: larger; font-weight: bold; background:green;">{{ request.user.username|get_first_letter|upper }}</div>
                                 {% endif %}
@@ -385,6 +396,22 @@
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
+                    {% if messages %}
+                      {% for message in messages %}
+                        {% if message.tags == 'error' %}
+                        <div class="alert alert-danger alert-dismissible fade show pr-3" role="alert">
+                            <strong>{{ message }}</strong>
+                            <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-{{message.tags}} alert-dismissible fade show pr-3" role="alert">
+                            <strong>{{ message }}</strong>
+                            <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button>
+                        </div>
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+
                     {% block content %}
                     {% endblock %}
                 </div>
@@ -433,6 +460,8 @@
             </div>
         </div>
     </div>
+    <!-- end Logout Modal-->
+
 
     <!-- clinic details model -->
     <div class="modal fade" role="dialog" tabindex="-2" id="ClinicModal">
@@ -442,55 +471,70 @@
                     <h4 class="modal-title" style="font-size: 17px;"> Add Clinic Details </h4>
                     <button type="button" class="btn-close" data-dismiss="modal" data-toggle="modal"  aria-label="Close">X</button>
                 </div>
-                <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" id="profile_form">
-                  {% csrf_token %}
-                  <div class="modal-body" style="text-align: left;">
-                      <div class="row" style="margin-top: 10px;">
-                          <div class="col"><label class="form-label">Clinic Name</label>
-                              <input type="text" class="form-control" name="name" placeholder="Clinic Name" style="width: 100%;" maxlength="50" oninput="validateInput(this)" required disabled>
-                          </div>
-                          <div class="col"><label class="form-label">State Name</label>
-                            <select id="state" class="form-control" name="state" style="width: 100%;" required disabled>
-                                <option value="">Select a state</option>
-                            </select>
-                            {% comment %} <input type="text" class="form-control" name="state" placeholder="State Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled> {% endcomment %}
-                        </div>
-                      </div>
-                      <div class="row" style="margin-top: 10px;">
-                          <div class="col"><label class="form-label">City Name</label>
-                            <select id="city" class="form-control" name="city" style="width: 100%;" required disabled>
-                                <option value="">Select a city</option>
-                            </select>
-                              {% comment %} <input type="text" class="form-control" name="city" placeholder="City Name" style="width: 100%;"  oninput="validateInput(this)" required disabled> {% endcomment %}
-                          </div>
-                          <div class="col"><label class="form-label">Pincode</label>
-                            <input type="number" class="form-control" name="pinclode" placeholder="XXXXXX" style="width: 100%;" min="100000" max="999999" oninput="validateInput(this)" required disabled>
-                          </div>
-                      </div>
-                      <div class="row" style="margin-top: 10px;">
-                            <div class="col"><label class="form-label">Address</label>
-                                <input type="text" class="form-control" name="address" placeholder="Address" style="width: 100%;" maxlength="150" oninput="validateInput(this)" required disabled>
+                <form method="POST" action="{% url 'clinic' %}" id="clinic_form">
+                    {% csrf_token %}
+                    <div class="modal-body" style="text-align: left;">
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col"><label class="form-label">Clinic Name</label>
+                                <input type="text" class="form-control" name="name" placeholder="Clinic Name" style="width: 100%;" 
+                                maxlength="50" {% if clinic.name %}value="{{clinic.name}}"{% endif %} oninput="validateInput(this)" required disabled>
                             </div>
-                          
-                          {% comment %} <div class="col"><label class="form-label">Profile Image</label>
-                            <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" accept="image/png, image/jpeg" required onchange="validateFileSize(event)">
-                        </div> {% endcomment %}
-                      </div>
-                      
-                      <div class="row" style="margin-top: 10px;">
-                          <div class="col"><label class="form-label">Number</label>
-                              <input type="number" class="form-control" name="number" placeholder="XXXXXXXXXX" style="width: 100%;" min="1000000000" max="9999999999" oninput="validateInput(this)" required disabled>
+                            <div class="col"><label class="form-label">State Name</label>
+                              <select id="state" class="form-control" name="state" style="width: 100%;" required disabled>
+                                  {% if clinic.state %}
+                                  <option value="{{clinic.state}}" selected>{{clinic.state}}</options>
+                                  {% else %}
+                                  <option value="">Select a state</option>
+                                  {% endif %}
+                              </select>
+                              {% comment %} <input type="text" class="form-control" name="state" placeholder="State Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled> {% endcomment %}
                           </div>
-                          <div class="col"><label class="form-label">Email</label>
-                              <input type="text" class="form-control" name="email" placeholder="example@gmail.com" style="width: 100%;" maxlength="50" oninput="validateInput(this)" required disabled>
-                          </div>                                                  
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col"><label class="form-label">City Name</label>
+                              <select id="city" class="form-control" name="city" style="width: 100%;" required disabled>
+                                  {% if clinic.city %}
+                                  <option value="{{clinic.city}}" selected>{{clinic.city}}</options>
+                                  {% else %}
+                                  <option value="">Select a city</option>
+                                  {% endif %}
+                              </select>
+                                {% comment %} <input type="text" class="form-control" name="city" placeholder="City Name" style="width: 100%;"  oninput="validateInput(this)" required disabled> {% endcomment %}
+                            </div>
+                            <div class="col"><label class="form-label">Pincode</label>
+                              <input type="number" class="form-control" name="pincode" placeholder="XXXXXX" style="width: 100%;" 
+                              min="100000" max="999999" {% if clinic.pincode %}value="{{clinic.pincode}}"{% endif %}oninput="validateInput(this)" required disabled>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                              <div class="col"><label class="form-label">Address</label>
+                                  <input type="text" class="form-control" name="address" placeholder="Address" style="width: 100%;" 
+                                  maxlength="150" {% if clinic.address %}value="{{clinic.address}}"{% endif %} oninput="validateInput(this)" required disabled>
+                              </div>
+                            
+                            {% comment %} <div class="col"><label class="form-label">Profile Image</label>
+                              <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" accept="image/png, image/jpeg" required onchange="validateFileSize(event)">
+                          </div> {% endcomment %}
+                        </div>
+                        
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col"><label class="form-label">Number</label>
+                                <input type="number" class="form-control" name="number" placeholder="XXXXXXXXXX" style="width: 100%;" 
+                                min="1000000000" max="9999999999" {% if clinic.number %}value="{{clinic.number}}"{% endif %} oninput="validateInput(this)" required disabled>
+                            </div>
+                            <div class="col"><label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" placeholder="example@gmail.com" style="width: 100%;" 
+                                maxlength="50" {% if clinic.email %}value="{{clinic.email}}"{% endif %} oninput="validateInput(this)" required disabled>
+                            </div>                                                  
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col"><label class="form-label">Specialization</label>
+                                <textarea name="specializations" class="form-control" placeholder="" style="width: 100%; resize:none;" 
+                                 oninput="validateInput(this)" rows="4" required disabled>{% if clinic.specializations %}{{clinic.specializations}}{% endif %}</textarea>
+                            </div>
+                        </div>
+                        
                       </div>
-                      <div class="row" style="margin-top: 10px;">
-                          <div class="col"><label class="form-label">Specilization</label>
-                              <textarea name="specilization" class="form-control" placeholder="" style="width: 100%; resize:none;" oninput="validateInput(this)" rows="4" required disabled></textarea>
-                          </div>
-                      </div>
-                    </div>
 
                     <div class="modal-footer">
                         <button class="btn btn-primary" id="edit_clinic_detatils" name="edit" type="button">Edit</button>
@@ -504,8 +548,9 @@
     
     <!-- Clinic details model and form javascript -->
     <script>
+        /* make clinic form editable */
         document.getElementById('edit_clinic_detatils').addEventListener('click', function () {
-            const formFields = document.querySelectorAll('#profile_form input, #profile_form select, #profile_form textarea');
+            const formFields = document.querySelectorAll('#clinic_form input, #clinic_form select, #clinic_form textarea');
             
             formFields.forEach(field => {
                 if ( field.type != 'hidden'){
@@ -530,7 +575,7 @@
                         // Populate state options
                         states['region'].forEach(state => {
                             const option = document.createElement('option');
-                            option.value = state.id;
+                            option.value = state.name;
                             option.textContent = state.name;
                             stateSelect.appendChild(option);
                         });
@@ -553,7 +598,7 @@
                         // Populate city options
                         cities['cities'].forEach(city => {
                             const option = document.createElement('option');
-                            option.value = city.id;
+                            option.value = city.name;
                             option.textContent = city.name;
                             citySelect.appendChild(option);
                         });

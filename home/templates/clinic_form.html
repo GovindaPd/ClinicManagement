@@ -1,0 +1,70 @@
+<form method="POST" action="{% url 'clinic' %}" id="clinic_form">
+                  {% csrf_token %}
+                  <div class="modal-body" style="text-align: left;">
+                      <div class="row" style="margin-top: 10px;">
+                          <div class="col"><label class="form-label">Clinic Name</label>
+                              <input type="text" class="form-control" name="name" placeholder="Clinic Name" style="width: 100%;" 
+                              maxlength="50" {% if clinic.name %}value="{{clinic.name}}"{% endif %} oninput="validateInput(this)" required disabled>
+                          </div>
+                          <div class="col"><label class="form-label">State Name</label>
+                            <select id="state" class="form-control" name="state" style="width: 100%;" required disabled>
+                                {% if clinic.state %}
+                                <option value="{{clinic.state}}" selected>{{clinic.state}}</options>
+                                {% else %}
+                                <option value="">Select a state</option>
+                                {% endif %}
+                            </select>
+                            {% comment %} <input type="text" class="form-control" name="state" placeholder="State Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled> {% endcomment %}
+                        </div>
+                      </div>
+                      <div class="row" style="margin-top: 10px;">
+                          <div class="col"><label class="form-label">City Name</label>
+                            <select id="city" class="form-control" name="city" style="width: 100%;" required disabled>
+                                {% if clinic.city %}
+                                <option value="{{clinic.city}}" selected>{{clinic.city}}</options>
+                                {% else %}
+                                <option value="">Select a city</option>
+                                {% endif %}
+                            </select>
+                              {% comment %} <input type="text" class="form-control" name="city" placeholder="City Name" style="width: 100%;"  oninput="validateInput(this)" required disabled> {% endcomment %}
+                          </div>
+                          <div class="col"><label class="form-label">Pincode</label>
+                            <input type="number" class="form-control" name="pincode" placeholder="XXXXXX" style="width: 100%;" 
+                            min="100000" max="999999" {% if clinic.pincode %}value="{{clinic.pincode}}"{% endif %}oninput="validateInput(this)" required disabled>
+                          </div>
+                      </div>
+                      <div class="row" style="margin-top: 10px;">
+                            <div class="col"><label class="form-label">Address</label>
+                                <input type="text" class="form-control" name="address" placeholder="Address" style="width: 100%;" 
+                                maxlength="150" {% if clinic.address %}value="{{clinic.address}}"{% endif %} oninput="validateInput(this)" required disabled>
+                            </div>
+                          
+                          {% comment %} <div class="col"><label class="form-label">Profile Image</label>
+                            <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" accept="image/png, image/jpeg" required onchange="validateFileSize(event)">
+                        </div> {% endcomment %}
+                      </div>
+                      
+                      <div class="row" style="margin-top: 10px;">
+                          <div class="col"><label class="form-label">Number</label>
+                              <input type="number" class="form-control" name="number" placeholder="XXXXXXXXXX" style="width: 100%;" 
+                              min="1000000000" max="9999999999" {% if clinic.number %}value="{{clinic.number}}"{% endif %} oninput="validateInput(this)" required disabled>
+                          </div>
+                          <div class="col"><label class="form-label">Email</label>
+                              <input type="email" class="form-control" name="email" placeholder="example@gmail.com" style="width: 100%;" 
+                              maxlength="50" {% if clinic.email %}value="{{clinic.email}}"{% endif %} oninput="validateInput(this)" required disabled>
+                          </div>                                                  
+                      </div>
+                      <div class="row" style="margin-top: 10px;">
+                          <div class="col"><label class="form-label">Specilization</label>
+                              <textarea name="specilizations" class="form-control" placeholder="" style="width: 100%; resize:none;" 
+                              {% if clinic.specilizations %}value="{{clinic.specilizations}}"{% endif %}oninput="validateInput(this)" rows="4" required disabled></textarea>
+                          </div>
+                      </div>
+                      
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" id="edit_clinic_detatils" name="edit" type="button">Edit</button>
+                        <button class="btn btn-primary" id="add_clinic_detatils" name="clinic_submit" type="submit" style="display:none;">Save</button>
+                    </div>
+              </form>

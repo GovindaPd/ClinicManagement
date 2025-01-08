@@ -1,16 +1,16 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from random import randint
-
+from cities_light.models import Region, City
 
 
 class User(AbstractUser):
-    custom_id = models.CharField(max_length=10, unique=True)
-    is_admin = models.BooleanField(default=False)
-    is_new_staff = models.BooleanField(default=False)
-    otp = models.CharField(max_length=5, blank=True, null=True)
+    custom_id       = models.CharField(max_length=10, unique=True)
+    is_admin        = models.BooleanField(default=False)
+    is_new_staff    = models.BooleanField(default=False)
+    otp             = models.CharField(max_length=5, blank=True, null=True)
     is_password_reset = models.BooleanField(default=False)
-    profile_img = models.ImageField(upload_to='profile_img/', blank=True)  
+    profile_img     = models.ImageField(upload_to='profile_img/', blank=True)  
     is_password_reset = models.BooleanField(default=False)
     
 
@@ -35,14 +35,14 @@ class User(AbstractUser):
         
 
 class Clinic(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='clinic')
-    name = models.CharField(max_length=255, help_text="Clinic Name")
-    address = models.CharField(max_length=255)
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
-    pincode = models.CharField(max_length=6)
-    number = models.CharField(max_length=15, blank=True)
-    email = models.EmailField(max_length=50, blank=True, null=True)
+    user    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='clinic')
+    name    = models.CharField(max_length=255, help_text="Clinic Name")
+    address = models.CharField(max_length=255, blank=True)
+    city    = models.ForeignKey(City, on_delete=models.SET_NULL, related_name="clinics_in_city", null=True, blank=True, max_length=255)
+    state   = models.ForeignKey(Region, on_delete=models.SET_NULL, related_name="clinics_in_state", null=True, blank=True, max_length=255)
+    pincode = models.CharField(max_length=6, null=True, blank=True)
+    number  = models.CharField(max_length=15, blank=True)
+    email   = models.EmailField(max_length=50, blank=True, null=True)
     
     specializations = models.TextField(blank=True, null=True)
     created_at = models.DateField(auto_now=True)
@@ -61,16 +61,16 @@ class Clinic(models.Model):
 
 
 class Patient(models.Model):
-    doctor = models.ForeignKey(User, related_name="patients", on_delete=models.CASCADE)
-    clinic = models.ForeignKey(Clinic, related_name='patients', on_delete=models.CASCADE )
-    name = models.CharField(max_length=255)
-    age = models.PositiveIntegerField(blank=True, null=True)
-    gender = models.CharField(max_length=10, choices=(("Male", "Male"), ("Female", "Female"), ("Other", "Other")))
-    number = models.CharField(max_length=15, blank=True, null=True)
-    address = models.CharField(max_length=255, blank=True, null=True)
+    doctor      = models.ForeignKey(User, related_name="patients", on_delete=models.CASCADE)
+    clinic      = models.ForeignKey(Clinic, related_name='patients', on_delete=models.CASCADE )
+    name        = models.CharField(max_length=255)
+    age         = models.PositiveIntegerField(blank=True, null=True)
+    gender      = models.CharField(max_length=10, choices=(("Male", "Male"), ("Female", "Female"), ("Other", "Other")))
+    number      = models.CharField(max_length=15, blank=True, null=True)
+    address     = models.CharField(max_length=255, blank=True, null=True)
     medical_history = models.TextField(blank=True)
-    image = models.ImageField(upload_to='reports/')
-    created_at = models.DateField(auto_now=True)
+    image       = models.ImageField(upload_to='reports/')
+    created_at  = models.DateField(auto_now=True)
 
     def __str__(self):
         return f"{self.name}"
@@ -78,12 +78,12 @@ class Patient(models.Model):
 
 
 class Prescription(models.Model):
-    patient = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE)
-    invoice = models.OneToOneField('Invoice', related_name='prescription', on_delete=models.CASCADE)
-    symptoms = models.TextField(blank=True)
+    patient     = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE)
+    invoice     = models.OneToOneField('Invoice', related_name='prescription', on_delete=models.CASCADE)
+    symptoms    = models.TextField(blank=True)
     prescription = models.TextField(blank=True)
-    visit_date = models.DateTimeField(auto_now=True)
-    next_visit = models.DateField(blank=True, null=True)
+    visit_date  = models.DateTimeField(auto_now=True)
+    next_visit  = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return self.patient.name
@@ -96,9 +96,9 @@ class Invoice(models.Model):
         ('Partial Paid', 'Partial Paid'),
         )
 
-    amount = models.IntegerField(default=0)
+    amount          = models.IntegerField(default=0)
     remainig_amount = models.IntegerField(default=0)
-    status = models.CharField(max_length=15, choices=PAYMENT_STATUS, default='Paid')
+    status          = models.CharField(max_length=15, choices=PAYMENT_STATUS, default='Paid')
 
     def __str__(self):
         return self.amount
