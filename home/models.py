@@ -1,7 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from random import randint
+from django.utils.timezone import now
+
 from cities_light.models import Region, City
+from random import randint
+import random
+import string
+import os
+
+
+
+def rename_image(instance, filename):
+    extension = os.path.splitext(filename)[1]
+    random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    new_name = f"{random_string}_{now().strftime('%d%m%Y%H%M%S')}.{extension}"
+    
+    if isinstance(instance, User):
+        return os.path.join('profile_img/', new_name)
+    else:   #isinstance(instance, Patient):
+        return os.path.join('reports/', new_name)
 
 
 class User(AbstractUser):
@@ -10,7 +27,7 @@ class User(AbstractUser):
     is_new_staff    = models.BooleanField(default=False)
     otp             = models.CharField(max_length=5, blank=True, null=True)
     is_password_reset = models.BooleanField(default=False)
-    profile_img     = models.ImageField(upload_to='profile_img/', blank=True)  
+    profile_img     = models.ImageField(upload_to=rename_image, blank=True)  
     is_password_reset = models.BooleanField(default=False)
     
 
@@ -65,12 +82,12 @@ class Patient(models.Model):
     clinic      = models.ForeignKey(Clinic, related_name='patients', on_delete=models.CASCADE )
     name        = models.CharField(max_length=255)
     age         = models.PositiveIntegerField(blank=True, null=True)
-    gender      = models.CharField(max_length=10, choices=(("Male", "Male"), ("Female", "Female"), ("Other", "Other")))
+    gender      = models.CharField(max_length=10, choices=(("Male", "Male"), ("Female", "Female"), ("Other", "Other")), null=True, blank=True)
     number      = models.CharField(max_length=15, blank=True, null=True)
     address     = models.CharField(max_length=255, blank=True, null=True)
     medical_history = models.TextField(blank=True)
-    image       = models.ImageField(upload_to='reports/')
-    created_at  = models.DateField(auto_now=True)
+    image       = models.ImageField(upload_to=rename_image, blank=True)
+    created_at  = models.DateField(auto_now=True)   
 
     def __str__(self):
         return f"{self.name}"
@@ -82,6 +99,7 @@ class Prescription(models.Model):
     invoice     = models.OneToOneField('Invoice', related_name='prescription', on_delete=models.CASCADE)
     symptoms    = models.TextField(blank=True)
     prescription = models.TextField(blank=True)
+    # image       = models.ImageField(upload_to='reports/')
     visit_date  = models.DateTimeField(auto_now=True)
     next_visit  = models.DateField(blank=True, null=True)
 

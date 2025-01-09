@@ -70,13 +70,13 @@ def forget_password(request):
         email = request.POST.get('email')
 
         if not email:
-            messages.error("Invalid email")
+            messages.error(request, "Invalid email")
             return render(request, 'forget_password.html')
         if email:
             try:
                 user = get_object_or_404(User, email=email)
             except Http404:
-                messages.error("Email is not registered")
+                messages.error(request, "Email is not registered")
                 return render(request, 'forget_password.html')
 
             otp = generate_otp()
@@ -94,67 +94,72 @@ def reset_password(request):
         email = request.POST.get('email')
         
         if not email:
-            messages.error("Invalid email")
+            messages.error(request, "Invalid email")
             return render(request, 'reset_password.html')
+        
         if email:
             try:
                 user = get_object_or_404(User, email=email)
             except Http404:
-                messages.error("Email is not registered")
+                messages.error(request, "Email is not registered")
                 return render(request, 'reset_password.html')
 
             otp = generate_otp()
+            user.otp = otp
+            user.save()
             user.custom_id
-            send_mail('Your rest OTP', f'Your reset OTP is {otp}', 'noreply@gmail.com', [email,], fail_silently=False)
-            return redirect('otp_verification', id=user.custom_id)
+            send_mail('Password reset OTP', f'Your reset OTP is {otp}', 'noreply@gmail.com', [email,], fail_silently=False)
+
+            return redirect('otp_verification', id=user.custom_id)  #render(request, 'otp_verification.html', {'id':user.custom_id})
 
 
 
 def otp_verification(request, id):
-    try:
-        user = get_object_or_404(User, custom_id=id)
-    except Http404:
-        messages.error("Email is not registered")
-        return render(request, 'reset_password.html')
+    user = get_object_or_404(User, custom_id=id)
+    
+    if request.method == 'GET':
+        return render(request, 'otp_verification.html', {'id':id})
     
     if request.method == 'POST':
         otp = request.POST.get('otp')
-        if otp in None or not otp.isdigit():
-            messages.error("please enter a valid OTP")
         
-        if otp != request.user.otp:
-            messages.error("please enter a valid OTP")
+        if not otp or not otp.isdigit():
+            messages.error(request, "please enter a valid OTP")
+            return render(request, 'otp_verification.html', {'id':id})
         
-        user = request.user
+        if otp != user.otp:
+            messages.error(request, "please enter a valid OTP")
+            return render(request, 'otp_verification.html', {'id':id})
+        
         user.otp = None
         user.save()
-        #here we need otp to generate token
-        token = TokenGenerator.generate_token(user)
 
-        return render(request, 'change_password.html', context={'token':token})
+        token = TokenGenerator().generate_token(user)
+        return redirect('change_password', token=token)
 
 
 
 def change_password(request, token):
-    if request.method == 'POST':
-        
-        email = TokenGenerator.validate_token(token)
-        if not email:
-            messages.error(request, "Not a valid token")
-            return redirect('reset_password')
-        
-        user = get_object_or_404(User, email=email)
-                
+    email = TokenGenerator().validate_token(token)
+    if not email:
+        messages.error(request, "Not a valid token")
+        return redirect('reset_password')
+    
+    if request.method == 'POST':   
+        user = get_object_or_404(User, email=email)        
         password = request.POST.get('password')
 
         if password and (len(password) >= 6 and len(password) <= 20):
             user.set_password(password)
-            user.otp = None
+            user.is_password_reset = False
             user.save()
+
+            messages.success(request, 'Password reset successfully.')
             return redirect('login')
         
         messages.error(request, "Enter a valid password")
-        return render(request, 'change_password.html')
+
+    return render(request, 'change_password.html', {'token':token})
 
 
 
@@ -191,6 +196,7 @@ def patients(request):
         
         return render(request, 'patients.html', {'patients':patients})
     
+
 
 @login_required(login_url='login')
 def profile(request):
@@ -229,23 +235,39 @@ def clinic(request):
         number      = request.POST.get('number')
         specializations = request.POST.get('specializations')
 
-        clinic = Clinic.objects.get(user=request.user)
-        clinic.name     = name
-        clinic.state    = state
-        clinic.city     = city
-        clinic.pincode  = pincode
-        clinic.address  = address
-        clinic.email    = email
-        clinic.number   = number
-        clinic.specializations = specializations
+        if state:
+            state = get_object_or_404(Region, id=state)
+        if city:
+            city = get_object_or_404(City, region=state, id=city)
+
+        clinic = Clinic.objects.filter(user=request.user).first()
         try:
-            clinic.save()
+            if clinic:
+                clinic.name     = name
+                clinic.state    = state
+                clinic.city     = city
+                clinic.pincode  = pincode
+                clinic.address  = address
+                clinic.email    = email
+                clinic.number   = number
+                clinic.specializations = specializations
+                clinic.save()
+            else:
+                clinic = Clinic.objects.create(
+                        user     = request.user,
+                        name     = name,
+                        state    = state,
+                        city     = city,
+                        pincode  = pincode,
+                        address  = address,
+                        email    = email,
+                        number   = number,
+                        specializations = specializations
+                    )
             messages.success(request, 'Clinic details updated successfully.')
         except Exception as error:
-            print("------------------------")
-            print(error)
-            print("-----------------------")
             messages.error(request, 'Error with form data.')
+        
         return redirect('home')
 
 
@@ -266,6 +288,69 @@ def state_cities(request, region=None):
           return JsonResponse({'cities':[]}, status=200)
           
 
+
+@login_required(login_url='login')
+def patients(request):
+    if request.method == 'GET':
+        if request.user.is_admin or request.user.is_superuser:
+            clinic = Clinic.objects.filter(user=request.user).first()
+
+            if not clinic:
+                clinic      = Clinic.objects.none()
+                patients    = Patient.objects.none()
+            else:
+                patients = Patient.objects.filter(clinic=clinic)
+
+            context = {
+                'clinic': clinic,
+                'patients': patients,
+            }
+            return render(request, 'patitens_list.html', context)
+
+
+
+@login_required(login_url='login')
+def add_new_patient(request):
+    if request.method == 'GET':
+        return render(request, 'add_new_patient.html')
+    
+    if request.method == 'POST':
+        if request.user.is_admin:
+            doctor      = request.user
+            clinic      = Clinic.objects.filter(user=doctor)
+            name        = request.POST.get('name')
+            age         = request.POST.get('age')
+            gender      = request.POST.get('gender')
+            number      = request.POST.get('number')
+            address     = request.POST.get('address')
+            medical_history = request.POST.get('medical_history')
+        
+            print(f"--------------{request.FILES.get('image')}-----------")
+            try:
+                patient = Patient.objects.create(
+                        doctor   = doctor,
+                        clinic   = clinic,
+                        name     = name,
+                        age      = age,
+                        gender   = gender,
+                        number   = number,
+                        address  = address,
+                        medical_history = medical_history
+                    )
+                
+                if 'image' in request.FILES:
+                    image = request.FILES['image']
+                    patient.image = image
+                    patient.save()
+                    # if user.profile_img:
+                    #     default_storage.delete(user.profile_img.path)
+            except Exception as error:
+                messages.error(request, "There is an error with form data.")
+
+            return redirect('patients')
+
+        # if request.user.is_superuser:
+        #     pass 
 # @login_required(login_url='login')
 # def edit_profile(request):
 #     if request.method == 'GET':

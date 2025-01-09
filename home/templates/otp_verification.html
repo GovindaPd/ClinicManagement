@@ -33,7 +33,7 @@
   </style>
 </head>
 
-<body class="bg-gradient-primary">
+<body class="" style="background:#e6f7ff;">
 
     <div class="container">
 
@@ -53,15 +53,26 @@
                                 <div class="d-flex flex-column justify-content-center p-5" style="height:100%;">
                                     <div class="text-center">
                                         <h3 class="h4 text-gray-900 mb-4">Verify OTP!</h3>
-                                        <p>We sent a verification code to your email id. Enter the code from the email in the field below.</p>
+                                        <p>We have sent a 5 digits verification code to your email id. Enter the code from the email in the field below.</p>
                                         
                                         {% if messages %}
                                         {% for message in messages %}
-                                        <div class="alert alert-danger">{{ message }}</div>
+                                            {% if message.tags == 'error' %}
+                                            <div class="alert alert-danger alert-dismissible fade show pr-3" role="alert">
+                                                <strong>{{ message }}</strong>
+                                                <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button>
+                                            </div>
+                                            {% else %}
+                                            <div class="alert alert-{{message.tags}} alert-dismissible fade show pr-3" role="alert">
+                                                <strong>{{ message }}</strong>
+                                                <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button>
+                                            </div>
+                                            {% endif %}
                                         {% endfor %}
                                         {% endif %}
+
                                     </div>
-                                    <form class="user">
+                                    <form class="user" method="POST">
                                         {% csrf_token %}
                                         <div class="form-group">
                                             <input type="number" name="otp" maxlength="5" minlength="5" pattern="^[0-9]{5}$" title="otp should be 5 digits" class="form-control form-control-user" 
