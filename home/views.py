@@ -7,11 +7,16 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.core.files.storage import default_storage
 from django.utils.timezone import now
-from .models import  User, Clinic, Patient, Prescription, Invoice
+from django.conf import settings
+from django.urls import resolve
+from urllib.parse import urlparse
+
+from cities_light.models import Country, Region, City 
 from random import randint
 
+
+from .models import  User, Clinic, Patient, Prescription, Invoice
 from .custom_token_generator import TokenGenerator
-from cities_light.models import Country, Region, City 
 from .serializers import RegionSerializers, CitySerializers
 
 
@@ -25,7 +30,7 @@ def login_in(request):
     if request.method == "POST":
         username = request.POST.get('username')
         password = request.POST.get('password')
-
+        remember_me = request.POST.get('remember_me')
         user = authenticate(request, username=username, password=password)
 
         if user is None:
@@ -33,10 +38,22 @@ def login_in(request):
             return render(request, 'login.html')
                
         if user.is_password_reset:
-            messages.error(request, "Please reset your password")
-            return redirect('reset_password')
+            messages.info(request, "We had send a password reset link to your email.")
+            token = TokenGenerator().generate_token(user)
+            reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
+            
+            send_mail(
+                subject="Password Reset Request",
+                message=f"Click the link below to reset your password:\n\n{reset_url}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+            )
+            return redirect('login')
 
         login(request, user)
+
+        if remember_me:
+            request.session.set_expiry(3600 * 24 * 30) # 7 days in seconds
 
         if user.is_superuser:
             return redirect('home')
@@ -62,65 +79,83 @@ def generate_otp():
     return otp
 
 
-def forget_password(request):
+
+def reset_password(request, token):
+    email = TokenGenerator().validate_token(token)
+    if not email:
+        messages.error(request, "Not a valid token")
+        return redirect('login')
+    
     if request.method == 'GET':
-        return render(request, 'forget_password.html')
+        return render(request, 'reset_password.html', {'token':token})
     
     if request.method == 'POST':
-        email = request.POST.get('email')
+        user = get_object_or_404(User, email=email)
+        password = request.POST.get('password')
 
+        if password and (len(password) >= 6 and len(password) <= 20):
+            user.set_password(password)
+            user.is_password_reset = False
+            user.save()
+
+            messages.success(request, 'Password update successfully.')
+            return redirect('login')
+        
+        messages.error(request, "Enter a valid password")
+        return render(request, 'reset_password.html', {'token':token})
+
+
+
+def get_url_name(full_url):
+    """ return url name """
+    if full_url:
+        parsed_url = urlparse(full_url)
+        path = parsed_url.path
+        try:
+            url_match = resolve(path)
+            return url_match.url_name
+        except Exception:
+            return None
+    else:
+        return None
+
+# referer = request.META.get('HTTP_REFERER')
+# url_name = get_url_name(referer)
+
+
+def forget_password(request):  
+    if request.method == 'GET':
+        return render(request, 'forget_password.html')
+
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        
         if not email:
             messages.error(request, "Invalid email")
             return render(request, 'forget_password.html')
+        
         if email:
             try:
                 user = get_object_or_404(User, email=email)
             except Http404:
-                messages.error(request, "Email is not registered")
+                messages.error(request, "Email is not registered.")
                 return render(request, 'forget_password.html')
-
-            otp = generate_otp()
-            send_mail('Your rest OTP', f'Your reset OTP is {otp}', 'noreply@gmail.com', [email,], fail_silently=False)
-            return redirect('otp_verification', id=user.custom_id)
-            #render(request, 'otp_verification.html')
-
-
-
-def reset_password(request):
-    if request.method == 'GET':
-        return render(request, 'reset_password.html')
-
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        
-        if not email:
-            messages.error(request, "Invalid email")
-            return render(request, 'reset_password.html')
-        
-        if email:
-            try:
-                user = get_object_or_404(User, email=email)
-            except Http404:
-                messages.error(request, "Email is not registered")
-                return render(request, 'reset_password.html')
 
             otp = generate_otp()
             user.otp = otp
             user.save()
             user.custom_id
-            send_mail('Password reset OTP', f'Your reset OTP is {otp}', 'noreply@gmail.com', [email,], fail_silently=False)
 
-            return redirect('otp_verification', id=user.custom_id)  #render(request, 'otp_verification.html', {'id':user.custom_id})
-
+            send_mail('Password forget request OTP', f'Your forget password OTP is {otp}', 'noreply@gmail.com', [email,], fail_silently=False)
+            return render(request, 'otp_verification.html', {'id':user.custom_id})
+            #return redirect('otp_verification', id=user.custom_id)
+  
 
 
 def otp_verification(request, id):
-    user = get_object_or_404(User, custom_id=id)
-    
-    if request.method == 'GET':
-        return render(request, 'otp_verification.html', {'id':id})
-    
+    print("here----------")
     if request.method == 'POST':
+        user = get_object_or_404(User, custom_id=id)
         otp = request.POST.get('otp')
         
         if not otp or not otp.isdigit():
@@ -135,31 +170,61 @@ def otp_verification(request, id):
         user.save()
 
         token = TokenGenerator().generate_token(user)
-        return redirect('change_password', token=token)
+        request.session['token'] = token
 
-
-
-def change_password(request, token):
-    email = TokenGenerator().validate_token(token)
-    if not email:
-        messages.error(request, "Not a valid token")
-        return redirect('reset_password')
-    
-    if request.method == 'POST':   
-        user = get_object_or_404(User, email=email)        
-        password = request.POST.get('password')
-
-        if password and (len(password) >= 6 and len(password) <= 20):
-            user.set_password(password)
-            user.is_password_reset = False
-            user.save()
-
-            messages.success(request, 'Password reset successfully.')
-            return redirect('login')
+        return render(request, 'change_password.html')
         
-        messages.error(request, "Enter a valid password")
 
-    return render(request, 'change_password.html', {'token':token})
+
+def change_password(request):
+    if request.method == 'POST':
+
+        if token:= request.session.get('token'):
+            email = TokenGenerator().validate_token(token)
+
+            if not email:
+                messages.error(request, "Not a valid token")
+                return redirect('forget_password')
+
+            user = get_object_or_404(User, email=email)        
+            password = request.POST.get('password')
+
+            if password and (len(password) >= 6 and len(password) <= 20):
+                user.set_password(password)
+                user.save()
+
+                del request.session['token']
+                messages.success(request, 'Password update successfully.')
+                return redirect('login')
+            
+            messages.error(request, "Enter a valid password")
+            return render(request, 'change_password.html')
+        
+        else:
+            return redirect('login')
+
+
+
+@login_required(login_url='login')
+def change_user_password(request):
+    if request.method == 'GET':
+        return render(request, 'change_user_password.html')
+    
+    if request.method == 'POST':
+        old_password = request.POST.get('old_password')
+        password     = request.POST.get('password')
+
+        user = get_object_or_404(User, username=request.user.username)
+        if user.check_password(old_password):
+            if password and (len(password) >= 6 and len(password) <= 20):
+                user.set_password(password)
+                user.save()
+                messages.success(request, 'Password update successfully.')
+            else:
+                messages.warning(request, "Password not changed. Please enter valid new password.")
+        else:
+            messages.error(request, "Password does not match.")
+        return redirect('change_user_password')
 
 
 
@@ -299,7 +364,7 @@ def patients(request):
                 clinic      = Clinic.objects.none()
                 patients    = Patient.objects.none()
             else:
-                patients = Patient.objects.filter(clinic=clinic)
+                patients = Patient.objects.filter(clinic=clinic).order_by('-created_at')
 
             context = {
                 'clinic': clinic,
@@ -310,14 +375,40 @@ def patients(request):
 
 
 @login_required(login_url='login')
-def add_new_patient(request):
+def patient_details(request, id):
     if request.method == 'GET':
-        return render(request, 'add_new_patient.html')
-    
-    if request.method == 'POST':
-        if request.user.is_admin:
+        patient = Patient.objects.filter(id=id).first()
+        if patient:
+            prescriptions = Prescription.objects.filter(patient=patient).order_by('visit_date')
+            context = {
+                'patient' : patient,
+                'prescriptions' : prescriptions,
+            }
+        else: 
+            context = {
+                'patient' : Patient.objects.none(),
+                'prescriptions' : Prescription.objects.none(),
+            }
+        
+        return render(request, 'patient_details.html', context)
+
+
+
+@login_required(login_url='login')
+def add_new_patient(request):
+    if request.user.is_admin:
+
+        if request.method == 'GET':
+            return render(request, 'add_new_patient.html')
+        
+        if request.method == 'POST':
             doctor      = request.user
-            clinic      = Clinic.objects.filter(user=doctor)
+            clinic      = Clinic.objects.filter(user=doctor).first()
+            
+            if not clinic:
+                messages.error(request, "You are not joined to any clinic.")
+                return redirect('patients')
+            
             name        = request.POST.get('name')
             age         = request.POST.get('age')
             gender      = request.POST.get('gender')
@@ -344,6 +435,7 @@ def add_new_patient(request):
                     patient.save()
                     # if user.profile_img:
                     #     default_storage.delete(user.profile_img.path)
+                messages.success(request, "Patient details added successfully.")
             except Exception as error:
                 messages.error(request, "There is an error with form data.")
 

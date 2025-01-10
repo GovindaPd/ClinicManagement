@@ -24,43 +24,25 @@
                         <th scope="col">Created Date</th>
                         <th scope="col">View</th>
                         <th scope="col">Edit</th>
-                        <th scope="col">New Prescription</th>
-                        
+                        <th scope="col">New Visit</th>
                     </tr>
                    </thead>
                    <tbody>
+                    {% for patient in patients %}
                     <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                        <td>Mark</td>
-                        <td>Otto</td>
+                        <td>{{forloop.counter}}</td>
+                        <td>{{patient.name}}</td>
+                        <td>{{patient.age}}</td>
+                        <td>{{patient.gender}}</td>
+                        <td>{{patient.number}}</td>
+                        <td>{{patient.address}}</td>
+                        <td>{{patient.medical_history}}</td>
+                        <td>{{patient.created_at}}</td>
+                        <td><a class="btn btn-primary" href="{% url 'patient_details' id=patient.id %}">View</a></td>
+                        <td>Edit</td>
+                        <td>New Visit</td>
                     </tr>
-                    <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                    </tr>
+                    {% endfor %}
                    </tbody>
                   </table>
                 </div>

@@ -5,7 +5,7 @@
                 </div>
                 <hr>
                 <div class="justify-content-center">                  
-                    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" id="profile_form">
+                    <form method="POST" action="{% url 'add_new_patient' %}" enctype="multipart/form-data" id="profile_form">
                         {% csrf_token %}
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6"><label class="form-label">Name</label>

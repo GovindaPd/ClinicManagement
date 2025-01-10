@@ -124,7 +124,7 @@ CITIES_LIGHT_INCLUDE_COUNTRIES = ['IN',]
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -186,3 +186,25 @@ EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'prafullagarawal59@gmail.com'
 # EMAIL_HOST_USER = 'noreply.parkgo@justapay.in'
 EMAIL_HOST_PASSWORD = 'cbqhtnsgkrzitjpe'
+
+
+
+#this are for session expire settings
+# or we can set on our login view like request.session.set_expiry(3600 * 24 * 7)
+#request.session.set_expiry(0) #close seeion now
+#use case
+#define explicitly on login
+#for differet user different time
+#Timeout for Certain Operations:
+# if remember_me:
+#     request.session.set_expiry(60) # 7 days in seconds
+# else:
+#     request.session.set_expiry(0)   # end session write now
+#request.session.set_expiry(None)   #set default session from settings.py file
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Store sessions in DB
+SESSION_COOKIE_AGE = 3600 * 24 * 7  # 7 days (time until cookie expires)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+SESSION_COOKIE_SECURE = True  # Set to True for HTTPS
+CSRF_COOKIE_SECURE = True  # Enable for secure CSRF cookies

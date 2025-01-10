@@ -13,7 +13,7 @@ import os
 def rename_image(instance, filename):
     extension = os.path.splitext(filename)[1]
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    new_name = f"{random_string}_{now().strftime('%d%m%Y%H%M%S')}.{extension}"
+    new_name = f"{random_string}_{now().strftime('%d%m%Y%H%M%S')}{extension}"
     
     if isinstance(instance, User):
         return os.path.join('profile_img/', new_name)
@@ -96,10 +96,9 @@ class Patient(models.Model):
 
 class Prescription(models.Model):
     patient     = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE)
-    invoice     = models.OneToOneField('Invoice', related_name='prescription', on_delete=models.CASCADE)
     symptoms    = models.TextField(blank=True)
     prescription = models.TextField(blank=True)
-    # image       = models.ImageField(upload_to='reports/')
+    image       = models.ImageField(upload_to='rename_image', blank=True)
     visit_date  = models.DateTimeField(auto_now=True)
     next_visit  = models.DateField(blank=True, null=True)
 
@@ -113,7 +112,7 @@ class Invoice(models.Model):
         ('Pending', 'Pending'),
         ('Partial Paid', 'Partial Paid'),
         )
-
+    prescription = models.OneToOneField(Prescription, on_delete=models.CASCADE, related_name='invoice', null=True, blank=True)
     amount          = models.IntegerField(default=0)
     remainig_amount = models.IntegerField(default=0)
     status          = models.CharField(max_length=15, choices=PAYMENT_STATUS, default='Paid')
