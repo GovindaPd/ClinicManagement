@@ -19,7 +19,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.2', 'localhost']#'localhost'
 
-#LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = 'home'
 # Application definition
 
 INSTALLED_APPS = [

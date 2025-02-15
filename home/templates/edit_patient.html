@@ -5,22 +5,25 @@
                 </div>
                 <hr>
                 <div class="justify-content-center">                  
-                    <form method="POST" action="{% url 'add_new_patient' %}" enctype="multipart/form-data" id="profile_form">
+                    <form method="POST" action="{% url 'edit_patient' patient_id=patient.id %}" enctype="multipart/form-data" id="profile_form">
                         {% csrf_token %}
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6"><label class="form-label">Name</label>
                                 <input type="text" class="form-control" name="name" placeholder="Name" style="width: 100%;"
-                                     maxlength="50" value="" required>
+                                     maxlength="50" value="{{patient.name}}" required>
                             </div>
                             <div class="col-sm-6"><label class="form-label">Age</label>
                                 <input type="number" class="form-control" name="age" placeholder="Age" style="width: 100%;"
-                                    max="150" min="0" step="0.1" value="">
+                                    max="150" min="0" step="0.1" value="{{patient.age}}">
                             </div>
                         </div>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6">
                                 <label class="form-label">Gender</label>
                                 <select class="form-control" name="gender" style="width: 100%;">
+                                  {% if patient.gender %}
+                                  <option value="{{ patient.gender }}">{{ patient.gender }}</option>
+                                  {% endif %}
                                     <option value="">Select Gender</option>
                                     <option value="male">Male</option>
                                     <option value="female">Female</option>
@@ -29,23 +32,27 @@
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Contact Number</label>
-                                <input type="tel" class="form-control" name="number" placeholder="Contact Number" style="width: 100%;" pattern="[0-9]{10}" value="">
+                                <input type="tel" class="form-control" name="number" placeholder="Contact Number" style="width: 100%;" pattern="[0-9]{10}" {% if patient.number %} value="{{patient.number}}"{% endif %}>
                             </div>
                         </div>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6">
                                 <label class="form-label">Address</label>
-                                <textarea class="form-control" name="address" placeholder="Address" style="width: 100%; resize: none;" rows="3" maxlength="200"></textarea>
+                                <textarea class="form-control" name="address" placeholder="Address" style="width: 100%; resize: none;" rows="3" maxlength="200">{% if patient.address %}{{patient.address}}{% endif %}</textarea>
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Medical History</label>
-                                <textarea class="form-control" name="medical_history" placeholder="Medical History" style="width: 100%; resize: none;" rows="3" ></textarea>
-                            </div>
+                                <textarea class="form-control" name="medical_history" placeholder="Medical History" style="width: 100%; resize: none;" rows="3" >{% if patient.medical_history %}{{patient.medical_history}}{% endif %}</textarea>
+                            </div>                                           
+                            
                         </div>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6">
                                 <label class="form-label">Blood Group</label>
                                 <select class="form-control" style="width: 100%;" name="blood_group">
+                                  {% if patient.blood_group %}
+                                    <option value="{{patient.blood_group}}">{{ patient.blood_group }}</option>
+                                  {% endif %}
                                     <option value="">Select Blood Group</option>
                                     <option value="A+">A+</option>
                                     <option value="A-">A-</option>
@@ -57,18 +64,17 @@
                                     <option value="O+">O -</option>
                                 </select>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-3">
                                 <label class="form-label">Upload Patient Report Image</label><!-- application/pdf -->
                                 <input type="file" class="form-control" name="image" placeholder="Upload Image" style="width: 100%;" accept="image/*">
                             </div>
-                          
-                            {% comment %} {% if request.user.profile_img %}
+                          {% if patient.image %}
                             <div style="margin-top:20px; margin-left:10px;">
-                                <img src="{{request.user.profile_img.url}}" style="width:50px; height:50px;">
+                                <img src="{{patient.image.url}}" alt="report" style="width:50px; height:50px;">
                             </div>
-                            {% endif %} {% endcomment %}
+                          {% endif %}
                         </div>  
-                        <button class="btn btn-primary" id="update_profile" name="profile_submit" type="submit" style="margin-top: 10px;">Submit</button>
+                        <button class="btn btn-primary" id="update_patient" name="update_patient" type="submit" style="margin-top: 10px;">Submit</button>
                     </form>
                 </div>
 

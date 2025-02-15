@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import update_last_login
 from django.contrib import messages
 # from django.core.validators import V
 from django.core.mail import send_mail
@@ -10,6 +11,8 @@ from django.utils.timezone import now
 from django.conf import settings
 from django.urls import resolve
 from urllib.parse import urlparse
+from django.utils.timezone import now
+from django.db import transaction
 
 from cities_light.models import Country, Region, City 
 from random import randint
@@ -19,8 +22,29 @@ from .models import  User, Clinic, Patient, Prescription, Invoice
 from .custom_token_generator import TokenGenerator
 from .serializers import RegionSerializers, CitySerializers
 
+import os
 
 
+
+def generate_otp():
+    otp = randint(10000,99999)
+    return otp
+
+def get_url_name(full_url):
+    """ return url name """
+    if full_url:
+        parsed_url = urlparse(full_url)
+        path = parsed_url.path
+        try:
+            url_match = resolve(path)
+            return url_match.url_name
+        except Exception:
+            return None
+    else:
+        return None
+
+# referer = request.META.get('HTTP_REFERER')
+# url_name = get_url_name(referer)
 
 
 def login_in(request):
@@ -37,33 +61,30 @@ def login_in(request):
             messages.error(request, "Invalid Credentional")
             return render(request, 'login.html')
                
-        if user.is_password_reset:
-            messages.info(request, "We had send a password reset link to your email.")
-            token = TokenGenerator().generate_token(user)
-            reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
-            
-            send_mail(
-                subject="Password Reset Request",
-                message=f"Click the link below to reset your password:\n\n{reset_url}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-            )
-            return redirect('login')
-
-        login(request, user)
-
-        if remember_me:
-            request.session.set_expiry(3600 * 24 * 30) # 7 days in seconds
-
         if user.is_superuser:
-            return redirect('home')
+            login(request, user)
+            update_last_login(None, user)  # Ensure last login is updated
+            return redirect('/admin/')
         
-        if user.is_admin:
-            return redirect('home')
+        elif user.is_admin:
+            if user.is_password_reset:
+                messages.info(request, "We had send a password reset link to your email.")
+                token = TokenGenerator().generate_token(user)
+                reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
+                
+                send_mail(
+                    subject="Password Reset Request",
+                    message=f"Click the link below to reset your password:\n\n{reset_url}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                )
+                return redirect('login')
 
-        # if user.is_new_staff:
-        #     return redirect('home')
-         
+            login(request, user)
+            if remember_me:
+                request.session.set_expiry(3600 * 24 * 30) # 7 days in seconds
+
+            return redirect('home')
 
 
 @login_required(login_url='login')
@@ -71,13 +92,6 @@ def logout_user(request):
     logout(request)
     messages.success(request, "Logout successfully")
     return render(request, 'login.html')
-
-
-
-def generate_otp():
-    otp = randint(10000,99999)
-    return otp
-
 
 
 def reset_password(request, token):
@@ -103,24 +117,6 @@ def reset_password(request, token):
         
         messages.error(request, "Enter a valid password")
         return render(request, 'reset_password.html', {'token':token})
-
-
-
-def get_url_name(full_url):
-    """ return url name """
-    if full_url:
-        parsed_url = urlparse(full_url)
-        path = parsed_url.path
-        try:
-            url_match = resolve(path)
-            return url_match.url_name
-        except Exception:
-            return None
-    else:
-        return None
-
-# referer = request.META.get('HTTP_REFERER')
-# url_name = get_url_name(referer)
 
 
 def forget_password(request):  
@@ -151,7 +147,6 @@ def forget_password(request):
             #return redirect('otp_verification', id=user.custom_id)
   
 
-
 def otp_verification(request, id):
     print("here----------")
     if request.method == 'POST':
@@ -174,7 +169,6 @@ def otp_verification(request, id):
 
         return render(request, 'change_password.html')
         
-
 
 def change_password(request):
     if request.method == 'POST':
@@ -204,7 +198,6 @@ def change_password(request):
             return redirect('login')
 
 
-
 @login_required(login_url='login')
 def change_user_password(request):
     if request.method == 'GET':
@@ -231,8 +224,7 @@ def change_user_password(request):
 @login_required(login_url='login')
 def index(request):
     if request.method == 'GET':
-        clinic = request.user.clinic.all().first()
-        return render(request, 'index.html', {'clinic':clinic})
+        return render(request, 'index.html')
 
 
 
@@ -240,27 +232,56 @@ def index(request):
 def all_users(request):
     if request.method == 'GET':
         if request.user.is_superuser:
-            users = User.objects.exclude(email=request.user.email)
-            return render(request, 'all_users.html', {'users':users})
+            users = User.objects.exclude(username=request.user.username)
+        elif request.user.is_admin:
+            clinic = request.user.clinic
+            users = User.objects.filter(clinic=clinic)
 
-        # if request.user.is_admin:
-        #     clinics = User.objects.clinics.all()
-        #     if clinics:
-        #         user.objects.filter(Clinics__in=clinics)
+        return render(request, 'user_list.html', {'users':users})
+    
+    return HttpResponseBadRequest()
+
+@login_required(login_url='login')
+def check_unique(request):
+    print("---------------------------")
+    if request.method == 'GET':
+        field = request.GET.get('field')
+        value = request.GET.get('value')
+        if field == 'email':
+            user = User.objects.filter(email=value)
+            return True if len(user)>0 else False
+        elif field == 'username':
+            user = User.objects.filter(username=value)
+            return True if len(user)>0 else False
+        else:
+            return None
+    return HttpResponseBadRequest()
+
 
 
 @login_required(login_url='login')
-def patients(request):
+def add_user(request):
     if request.method == 'GET':
-        if request.user.is_superuser:
-            patients = Patient.objects.all()
-
+        # if request.user.is_superuser:
+        #     clinics = clinic.objects.all()
+        #     users = User.objects.exclude(username=request.user.username)
         if request.user.is_admin:
-            clinic = request.user.clinics.all().first()
-            patients = Patient.objects.filter(clinic=clinic)
-        
-        return render(request, 'patients.html', {'patients':patients})
+            clinic = request.user.clinic
+            # users = User.objects.filter(clinic=clinic)
+
+        return render(request, 'add_user.html')
+    if request.method == 'POST':
+
+        return redirect('all_users')
     
+    return HttpResponseBadRequest()
+# if request.user.is_admin:
+#     clinics = User.objects.clinics.all()
+#     if clinics:
+#         user.objects.filter(Clinics__in=clinics)
+
+
+
 
 
 @login_required(login_url='login')
@@ -291,6 +312,8 @@ def profile(request):
 @login_required(login_url='login')
 def clinic(request):
     if request.method == 'POST':
+        if not request.user.is_admin:
+            return HttpResponseForbidden()
         name        = request.POST.get('name')
         state       = request.POST.get('state')
         city        = request.POST.get('city')
@@ -351,7 +374,7 @@ def state_cities(request, region=None):
             return JsonResponse({'cities':serializer.data}, status=200)
       else:
           return JsonResponse({'cities':[]}, status=200)
-          
+    
 
 
 @login_required(login_url='login')
@@ -371,13 +394,127 @@ def patients(request):
                 'patients': patients,
             }
             return render(request, 'patitens_list.html', context)
-
+    return HttpResponseBadRequest()
 
 
 @login_required(login_url='login')
-def patient_details(request, id):
+def add_new_patient(request):
+    if request.user.is_admin:
+        if request.method == 'GET':
+            return render(request, 'add_new_patient.html')
+        
+        if request.method == 'POST':
+            doctor      = request.user
+            clinic      = Clinic.objects.filter(user=doctor).first()
+            
+            if not clinic:
+                messages.error(request, "You are not joined to any clinic.")
+                return redirect('patients')
+            
+            name        = request.POST.get('name')
+            age         = request.POST.get('age') or None
+            gender      = request.POST.get('gender')
+            number      = request.POST.get('number')
+            address     = request.POST.get('address')
+            medical_history = request.POST.get('medical_history')
+            blood_group = request.POST.get('blood_group')
+        
+            try:
+                patient = Patient.objects.create(
+                        doctor          = doctor,
+                        clinic          = clinic,
+                        name            = name,
+                        age             = age,
+                        gender          = gender,
+                        number          = number,
+                        address         = address,
+                        medical_history = medical_history,
+                        blood_group     = blood_group
+                    )
+                
+                if 'image' in request.FILES:
+                    image = request.FILES['image']
+                    patient.image = image
+                    patient.save()
+                    # if user.profile_img:
+                    #     default_storage.delete(user.profile_img.path)
+                messages.success(request, "Patient details added successfully.")
+            except Exception as error:
+                messages.error(request, "There is an error with form data.")
+
+            return redirect('patients')
+        
+
+@login_required(login_url='login')
+def edit_patient(request, patient_id):
     if request.method == 'GET':
-        patient = Patient.objects.filter(id=id).first()
+        clinic = request.user.clinic
+        doctor = request.user
+    
+        if request.user.is_admin:
+            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
+        # elif request.user.is_new_staff:
+        #     patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+        return render(request, 'edit_patient.html', {'patient':patient})
+
+    if request.method == 'POST':
+        name        = request.POST.get('name')
+        age         = request.POST.get('age')
+        gender      = request.POST.get('gender')
+        number      = request.POST.get('number')
+        address     = request.POST.get('address')
+        medical_history = request.POST.get('medical_history')
+        blood_group = request.POST.get('blood_group')
+        image       = request.FILES.get('image')
+
+        if request.user.is_admin:
+            doctor = request.user
+            clinic = request.user.clinic
+        
+        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+        try:
+            patient.name        = name
+            patient.age         = age
+            patient.gender      = gender
+            patient.number      = number
+            patient.address     = address
+            patient.medical_history = medical_history
+            patient.blood_group = blood_group
+
+            if image:
+                if patient.image:
+                    default_storage.delete(patient.image.path)
+                    patient.image = image
+            patient.save()
+            messages.success(request, "Patient details updates successfully.")
+        except Exception as error:
+            messages.error(request, "There is an error with form data.")
+
+        return redirect('patients')
+
+
+@login_required(login_url='login')
+def delete_patient(request, patient_id):
+    if request.method == 'GET':
+        clinic = request.user.clinic
+        doctor = request.user
+        
+        if request.user.is_admin:
+            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
+        # elif request.user.is_new_staff:
+        #     patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+
+        patient.delete()
+        messages.success(request, "Patient deleted successfully.")
+        return redirect ('patients')
+    
+    return HttpResponseBadRequest()
+
+
+@login_required(login_url='login')
+def patient_details(request, patient_id):
+    if request.method == 'GET':
+        patient = Patient.objects.filter(id=patient_id).first()
         if patient:
             prescriptions = Prescription.objects.filter(patient=patient).order_by('visit_date')
             context = {
@@ -395,60 +532,158 @@ def patient_details(request, id):
 
 
 @login_required(login_url='login')
-def add_new_patient(request):
-    if request.user.is_admin:
+def add_patient_visit(request, patient_id):
+    today = now().date()
+    today = today.strftime("%Y-%m-%d")
 
-        if request.method == 'GET':
-            return render(request, 'add_new_patient.html')
+    if request.method == 'GET':
+        return render(request, 'add_patient_visit.html', {'today': today})
+    
+    if request.method == 'POST':
+        patient = get_object_or_404(Patient, id=patient_id)
+
+        symptoms = request.POST.get('symptoms')
+        prescription = request.POST.get('prescription')
+        visit_date = request.POST.get('visit_date',)
+        next_visit = request.POST.get('next_visit') or None
+        image = request.FILES.get('image')
+        amount = request.POST.get('amount',0)
+        paid_amount = request.POST.get('paid_amount',0)
         
-        if request.method == 'POST':
-            doctor      = request.user
-            clinic      = Clinic.objects.filter(user=doctor).first()
-            
-            if not clinic:
-                messages.error(request, "You are not joined to any clinic.")
-                return redirect('patients')
-            
-            name        = request.POST.get('name')
-            age         = request.POST.get('age')
-            gender      = request.POST.get('gender')
-            number      = request.POST.get('number')
-            address     = request.POST.get('address')
-            medical_history = request.POST.get('medical_history')
+        try:
+            amount = int(amount)
+            paid_amount = int(paid_amount)
+            pending_amount = amount - paid_amount
+        except ValueError:
+            messages.error(request, "amount value is not integer")
+            return render(request, 'add_patient_visit.html', {'today': today})
         
-            print(f"--------------{request.FILES.get('image')}-----------")
-            try:
-                patient = Patient.objects.create(
-                        doctor   = doctor,
-                        clinic   = clinic,
-                        name     = name,
-                        age      = age,
-                        gender   = gender,
-                        number   = number,
-                        address  = address,
-                        medical_history = medical_history
-                    )
+        if amount == paid_amount:
+            status = 'Paid'
+        elif paid_amount == 0 and amount !=0:
+            status = 'Pending'
+        else:
+            status = 'Partial Paid'
+       
+        try:
+            with transaction.atomic():
+                prescription = Prescription.objects.create(
+                    patient         = patient,
+                    symptoms        = symptoms,
+                    prescription    = prescription,
+                    visit_date      = visit_date,
+                    next_visit      = next_visit
+                )
+                if image:    
+                    prescription.image = image
+                    prescription.save()
                 
-                if 'image' in request.FILES:
-                    image = request.FILES['image']
-                    patient.image = image
-                    patient.save()
-                    # if user.profile_img:
-                    #     default_storage.delete(user.profile_img.path)
-                messages.success(request, "Patient details added successfully.")
-            except Exception as error:
-                messages.error(request, "There is an error with form data.")
+                invoice = Invoice.objects.create(
+                    prescription = prescription,
+                    amount = amount,
+                    pending_amount = pending_amount,
+                    status = status
+                )
+        except Exception as e:
+            messages.error(request, f"Error occurred: {str(e)}")
+        else:
+            messages.success(request, "new visit added successfully.")
 
-            return redirect('patients')
+        return redirect('patient_details', patient_id=patient_id)
 
-        # if request.user.is_superuser:
-        #     pass 
-# @login_required(login_url='login')
-# def edit_profile(request):
-#     if request.method == 'GET':
-#         return render(request, '')
     
-#     if request.method == 'POST':
-#         return render(request, 'edit_profile.html')
+
+@login_required(login_url='login')
+def edit_patient_visit(request, patient_id, visit_id):
+    if request.method == 'GET':
+        prs = Prescription.objects.filter(id=visit_id).first()
+        return render(request, 'edit_patient_visit.html', {'today': now().date(), 'prs':prs, 'patient_id':patient_id, 'visit_id':visit_id})
     
+    if request.method == 'POST':
+        doctor = request.user
+        #clinic = Clinic.objects.get(user=doctor)
         
+        if request.user.is_admin:
+            clinic = request.user.clinic
+        # elif request.user.is_new_staff:
+        #     pass
+
+        patient = get_object_or_404(Patient, id=patient_id, doctor=doctor)  #patinet of perticuler doctor
+        prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #prescription of perticuler 
+
+        symptoms = request.POST.get('symptoms')
+        prescription = request.POST.get('prescription')
+        visit_date = request.POST.get('visit_date')
+        next_visit = request.POST.get('next_visit')
+        image = request.FILES.get('image')
+        amount = request.POST.get('amount',0)
+        paid_amount = request.POST.get('paid_amount',0)
+        
+        try:
+            amount = int(amount)
+            paid_amount = int(paid_amount)
+            pending_amount = amount - paid_amount
+        except ValueError:
+            messages.error("amount value is not integer")
+            return redirect('patient_details', patient_id=patient_id)
+        
+        if amount == paid_amount:
+            status = 'Paid'
+        elif paid_amount == 0 and amount !=0:
+            status = 'Pending'
+        else:
+            status = 'Partial Paid'
+       
+        try:
+            with transaction.atomic():
+                prs.symptoms        = symptoms
+                prs.prescription    = prescription
+                prs.visit_date      = visit_date
+                prs.next_visit      = next_visit
+                
+                if image:
+                    if prs.image:
+                        os.remove(prs.image.path)
+                    prs.image = image
+
+                prs.invoice.amount = amount
+                prs.invoice.pending_amount = pending_amount
+                prs.invoice.status = status
+
+                prs.save()
+
+        except Exception as e:
+            messages.error(request, f"Error occurred: {str(e)}")
+        else:
+            messages.success(request, "Visit updated successfully.")
+
+        return redirect('patient_details', patient_id=patient_id)
+    
+
+
+@login_required(login_url='login')
+def delete_patient_visit(request, patient_id, visit_id):
+    if request.method == 'GET':
+        clinic = request.user.clinic
+        doctor = request.user
+        
+        if request.user.is_admin:
+            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
+        # elif request.user.is_new_staff:
+        #     patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+
+        prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #perticuler prescription of patient 
+        prs.delete()
+
+        messages.success(request, "Visit deleted successfully.")
+        return redirect ('patient_details', patient_id=patient_id)
+    
+    return HttpResponseBadRequest()
+
+
+
+# ROUGHT
+@login_required(login_url='login')
+def rough(request):
+    if request.method == 'GET':
+        return render(request, 'chess.html')

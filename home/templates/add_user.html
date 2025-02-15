@@ -1,24 +1,36 @@
 {% extends 'layout.html' %}
             {% block content %}
                 <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0">Patient Details</h2>
+                    <h2 class="mb-0">Create User</h2>
                 </div>
                 <hr>
-                <div class="justify-content-center">                  
+                <div class="justify-content-center">
                     <form method="POST" action="{% url 'add_new_patient' %}" enctype="multipart/form-data" id="profile_form">
                         {% csrf_token %}
                         <div class="row" style="margin-top: 10px;">
-                            <div class="col-sm-6"><label class="form-label">Name</label>
-                                <input type="text" class="form-control" name="name" placeholder="Name" style="width: 100%;"
-                                     maxlength="50" value="" required>
+                            <div class="col-sm-6"><label class="form-label">Username* <small id="username_error" style="color:red; display:none;">username is not available</small></label>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Username must be unique" style="width: 100%;"
+                                     maxlength="50" value="" required oninput="checkUsername(this)">
                             </div>
-                            <div class="col-sm-6"><label class="form-label">Age</label>
+                            <div class="col-sm-6"><label class="form-label">Email* <small id="email_error" style="color:red; display:none;">email is not available</small></label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Email must be unique" style="width: 100%;"
+                                     maxlength="50" value="" required oninput="checkemail(this)">
+                            </div>
+                            {% comment %} <div class="col-sm-6"><label class="form-label">Age</label>
                                 <input type="number" class="form-control" name="age" placeholder="Age" style="width: 100%;"
                                     max="150" min="0" step="0.1" value="">
-                            </div>
+                            </div> {% endcomment %}
                         </div>
                         <div class="row" style="margin-top: 10px;">
-                            <div class="col-sm-6">
+                            <div class="col-sm-6"><label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="name" placeholder="First Name" style="width: 100%;"
+                                     maxlength="50" value="">
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="name" placeholder="Last Name" style="width: 100%;"
+                                     maxlength="50" value="" >
+                            </div>
+                            {% comment %} <div class="col-sm-6">
                                 <label class="form-label">Gender</label>
                                 <select class="form-control" name="gender" style="width: 100%;">
                                     <option value="">Select Gender</option>
@@ -40,10 +52,10 @@
                             <div class="col-sm-6">
                                 <label class="form-label">Medical History</label>
                                 <textarea class="form-control" name="medical_history" placeholder="Medical History" style="width: 100%; resize: none;" rows="3" ></textarea>
-                            </div>
+                            </div> {% endcomment %}
                         </div>
                         <div class="row" style="margin-top: 10px;">
-                            <div class="col-sm-6">
+                            {% comment %} <div class="col-sm-6">
                                 <label class="form-label">Blood Group</label>
                                 <select class="form-control" style="width: 100%;" name="blood_group">
                                     <option value="">Select Blood Group</option>
@@ -56,11 +68,11 @@
                                     <option value="O+">O+</option>
                                     <option value="O+">O -</option>
                                 </select>
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Upload Patient Report Image</label><!-- application/pdf -->
+                            </div> {% endcomment %}
+                            {% comment %} <div class="col-sm-6">
+                                <label class="form-label">Upload User Image</label><!-- application/pdf -->
                                 <input type="file" class="form-control" name="image" placeholder="Upload Image" style="width: 100%;" accept="image/*">
-                            </div>
+                            </div> {% endcomment %}
                           
                             {% comment %} {% if request.user.profile_img %}
                             <div style="margin-top:20px; margin-left:10px;">
@@ -68,8 +80,32 @@
                             </div>
                             {% endif %} {% endcomment %}
                         </div>  
-                        <button class="btn btn-primary" id="update_profile" name="profile_submit" type="submit" style="margin-top: 10px;">Submit</button>
+                        <button class="btn btn-primary" id="create_user" name="create_user" type="submit" style="margin-top: 10px;">Submit</button>
                     </form>
                 </div>
 
+
+                <script>
+                    function checkUsername() {
+                        let username = $("#username").val();
+                        if (username.length < 3) {
+                            $("#username_error").hide();
+                            return;
+                        }
+                    
+                        $.ajax({
+                            url: "{% url 'check_unique' %}",
+                            type: "GET",
+                            data: { 'field': 'username', 'value':username },
+                            success: function(response) {
+                                console.error(response)
+                                if (response.exists) {
+                                    $("#username_error").show();
+                                } else {
+                                    $("#username_error").hide();
+                                }
+                            }
+                        });
+                    }
+                    </script>
             {% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'layout.html' %}
+            {% block content %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">Patient visit</h2>
+                </div>
+                <hr>
+                <div class="justify-content-center">                  
+                    <form method="POST" enctype="multipart/form-data" id="patint_new_visit_form">
+                        {% csrf_token %}
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6"><label class="form-label">Symptoms</label>
+                                <textarea class="form-control" name="symptoms" placeholder="Symptoms" style="width: 100%; resize: none;" rows="3" ></textarea>
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Prescription</label>
+                                <textarea class="form-control" name="prescription" placeholder="Prescription" style="width: 100%; resize: none;" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6">
+                                <label class="form-label">Visit Date</label>
+                                <input class="form-control" type="date" id="visit_date" name="visit_date" value="{{today}}">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Next Visit Date</label>
+                                <input class="form-control" type="date" id="next_visit" name="next_visit" value="">
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6">
+                                <label class="form-label">Upload Patient Report Image</label><!-- application/pdf -->
+                                <input type="file" class="form-control" name="image" placeholder="Upload Image" style="width: 100%;" accept="image/*">
+                            </div>
+                        
+                        </div>
+
+                        {% comment %} <hr> {% endcomment %}
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6"><label class="form-label">Total Amount</label>
+                                <input type="number" class="form-control" name="amount" placeholder="Total Amount" style="width: 100%;"
+                                    min="0" step="1" value="">
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Paid Amount</label>
+                                <input type="number" class="form-control" name="paid_amount" placeholder="Paid Amount" style="width: 100%;"
+                                   min="0" step="1" value="">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="add_visit" name="submit" type="submit" style="margin-top: 10px;">Add Visit</button>
+                    </form>
+                </div>
+
+            {% endblock %}

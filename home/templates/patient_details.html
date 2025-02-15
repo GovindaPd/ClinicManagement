@@ -2,55 +2,79 @@
             {% block content %}
                 <div class="d-flex justify-content-between align-items-center">
                     <h2 class="mb-0">Patient Details</h2>
-                    <a href="{% url 'add_new_patient' %}" class="btn btn-primary">
+                    <a href="{% url 'add_patient_visit' patient_id=patient.id %}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add New Visit
                     </a>
                 </div>
                 <hr>
                 
-                    <div class="card">
-                        <div class="card-body">
-                          <div class="row">
-                            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        {% comment %} <h5 class="card-title">{{ patient.name }}</h5>  {% endcomment %}
+                        <div class="row mb-2">
+                            <div class="col-md-4">
                                 <p class="card-text"><strong>Name:</strong> {{ patient.name }}</p>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4">
+                                <p class="card-text"><strong>Blood Group:</strong>{% if patient.blood_group %}{{ patient.blood_group }}{% endif %}</p>
+                            </div>
+                            <div class="col-md-4">
                                 <p class="card-text"><strong>Age:</strong> {{ patient.age }}</p>
                             </div>
-                            <div class="col-md-4 mb-3">
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-4">
                                 <p class="card-text"><strong>Gender:</strong> {{ patient.gender }}</p>
                             </div>
-                          </div>
-                          <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4">
                                 <p class="card-text"><strong>Contact Number:</strong> {{ patient.number }}</p>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4">
                                 <p class="card-text"><strong>Address:</strong> {{ patient.address }}</p>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-4">
+                                <p class="card-text"><strong>Medical Report Image:</strong>
+                                  {% if patient.image %}
+                                    <img src="{{patient.image.url}}" alt="patient report" style="max-width:50px; max-height:50px; cursor: pointer;"
+                                     data-toggle="modal" data-target="#reportModal" data-src="{{patient.image.url}}" onclick="showImageModal(this)">
+                                  {% endif %}
+                                </p>
+                              </div>
+                            <div class="col-md-8">
                                 <p class="card-text"><strong>Medical History:</strong> {{ patient.medical_history }}</p>
                             </div>
-                          </div>
-                          <div class="row">
-                            <div class="col-md-4 mb-3">
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-4">
                                 <p class="card-text"><small class="text-muted">Created At: {{ patient.created_at }}</small></p>
                             </div>
-                          </div>
-                                {% comment %} <h5 class="card-title">{{ patient.name }}</h5> {% endcomment %} 
                         </div>
                     </div>
-                        {% comment %} <td>{{forloop.counter}}</td>
-                        <td>{{patient.name}}</td>
-                        <td>{{patient.age}}</td>
-                        <td>{{patient.gender}}</td>
-                        <td>{{patient.number}}</td>
-                        <td>{{patient.address}}</td>
-                        <td>{{patient.medical_history}}</td>
-                        <td>{{patient.created_at}}</td> {% endcomment %}
-                    
+                </div>
+                <!-- Modal -->
+                <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="reportModalLabel">Patient Report</h5>
+                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">X</button>
+                            </div>
+                            <div class="modal-body">
+                                <img src="" id="report_image_modal" alt="Patient Report" style="width: 100%; height: auto;">
+                                {% comment %} 
+                                    <!-- If it's a PDF -->
+                                    {% if patient.image.url.endswith:(".pdf") %}
+                                    <iframe src="{{ patient.image.url }}" style="width: 100%; height: 500px;" frameborder="0"></iframe> 
+                                {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto;">
+                <div class="table-responsive mt-3" style="max-height: 500px; overflow-y: auto; overflow-x: auto;">
                   <table class="table table-bordered">
                     
                    <thead class="table-dark">
@@ -60,12 +84,13 @@
                         <th scope="col">Prescription</th>
                         <th scope="col">Image</th>
                         <th scope="col">Amount</th>
-                        <th scope="col">Remaining Amount</th>
+                        <th scope="col">Pending Amount</th>
                         <th scope="col">Payment Status</th>
                         <th scope="col">Visit Date</th>
-                        <th scope="col">Next Visit Date</th>
-                        <th scope="col">Edit</th>
-                        
+                        <th scope="col">Next Visit</th>
+                        <th scope="col">View/Edit</th>
+                        <th scope="col">Delete</th>
+                        {% comment %} <th scope="col">Edit</th> {% endcomment %}
                     </tr>
                    </thead>
                    <tbody>
@@ -74,18 +99,83 @@
                         <td>{{forloop.counter}}</td>
                         <td>{{prs.symptoms}}</td>
                         <td>{{prs.prescription}}</td>
-                        <td>{{prs.image}}</td>
+                        
+                        <td>
+                          {% if prs.image %}
+                            <img src="{{prs.image.url}}" alt="patient report" style="max-width:50px; max-height:50px; cursor: pointer;" 
+                            data-toggle="modal" data-target="#reportModal" data-src="{{prs.image.url}}" onclick="showImageModal(this)">
+                          {% endif %}
+                        </td>
+                        
                         <td>{{prs.invoice.amount}}</td>
-                        <td>{{prs.invoice.remaining_amount}}</td>
+                        <td>{{prs.invoice.pending_amount}}</td>
                         <td>{{prs.invoice.status}}</td>
-                        <td>{{prs.visit_date}}</td>
-                        <td>{{prs.next_visit}}</td>
-                        <td><a class="btn btn-primary" href="{% url ''%}">View</a></td>
-                        <td>Edit</td>
-                        <td>New Visit</td>
+                        <td>{{prs.visit_date|date:'d-M-Y'}}</td>
+                        <td>
+                          {% if prs.next_visit %}
+                            {{prs.next_visit|date:'d-M-Y'}}
+                          {% endif %}
+                        </td>
+                        <td>
+                          <a class="btn btn-primary" href="{% url 'edit_patient_visit' patient_id=patient.id visit_id=prs.id %}">View/Edit</a>
+                        </td>
+                        <td>
+                          <a class="btn btn-danger" data-toggle="modal" data-target="#deleteConfirmModal" 
+                               data-url="{% url 'delete_patient_visit' patient_id=patient.id visit_id=prs.id %}" onclick="showDeleteModal(this)">Delete</a>
+                        </td>
                     </tr>
                     {% endfor %}
                    </tbody>
                   </table>
                 </div>
+                
+                <!-- record delete confirmation modal -->
+                <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Deletion</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete this record? This action cannot be undone.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <a id="confirmDeleteBtn" class="btn btn-danger" href="#">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    {% comment %} $(document).ready(function() {
+                        /* pop up delete confirmation modal*/
+                        function showDeleteModal(element) {
+                            let deleteUrl = element.getAttribute("data-url");
+                            document.getElementById("confirmDeleteBtn").src = imageUrl;
+                        }
+                        $('#deleteConfirmModal').on('show.bs.modal', function(event) {
+                            var button = $(event.relatedTarget);
+                            var deleteUrl = button.data('url');
+                            console.error(deleteUrl)
+                            $('#confirmDeleteBtn').attr('href', deleteUrl);
+                        });
+                    }); {% endcomment %}
+
+                    function showDeleteModal(element) {
+                        let deleteUrl = element.getAttribute("data-url");
+                        console.log(deleteUrl)
+                        document.getElementById("confirmDeleteBtn").href = deleteUrl;
+                    }
+
+                    /* change image scr dynamically*/
+                    function showImageModal(imgElement) {
+                        let imageUrl = imgElement.getAttribute("data-src");
+                        document.getElementById("report_image_modal").src = imageUrl;
+                    }
+                </script>
+
             {% endblock content%}

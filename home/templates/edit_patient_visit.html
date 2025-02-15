@@ -1,0 +1,85 @@
+{% extends 'layout.html' %}
+            {% block content %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">Edit patient visit</h2>
+                </div>
+                <hr>
+                <div class="justify-content-center">                  
+                    <form method="POST" enctype="multipart/form-data" id="edit_patint_visit">
+                        {% csrf_token %}
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6"><label class="form-label">Symptoms</label>
+                                <textarea class="form-control" name="symptoms" placeholder="Symptoms" style="width: 100%; resize: none;" rows="3" >{{prs.symptoms}}</textarea>
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Prescription</label>
+                                <textarea class="form-control" name="prescription" placeholder="Prescription" style="width: 100%; resize: none;" rows="3" >{{prs.prescription}}</textarea>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6">
+                                <label class="form-label">Visit Date</label>
+                                <input class="form-control" type="date" id="visit_date" name="visit_date" value="{{ prs.visit_date|date:'Y-m-d'}}">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Next Visit Date</label>
+                                <input class="form-control" type="date" id="next_visit" name="next_visit" value="{{prs.next_visit|date:'Y-m-d'}}"  >
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6">
+                                <label class="form-label">Upload Patient Report Image</label><!-- application/pdf -->
+                                <input type="file" class="form-control" name="image" placeholder="Upload Image" style="width: 100%;" accept="image/*" >
+                            </div>
+                            {% if prs.image %}
+                            <div style="margin-top:20px; margin-left:10px;">
+                                <img src="{{prs.image.url}}" alt="patient report" style="max-width:50px; max-height:50px; cursor: pointer;"
+                                data-toggle="modal" data-target="#reportModal" data-src="{{prs.image.url}}" onclick="showImageModal(this)">
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        {% comment %} <hr> {% endcomment %}
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6"><label class="form-label">Total Amount</label>
+                                <input type="number" class="form-control" name="amount" placeholder="Total Amount" style="width: 100%;"
+                                    min="0" step="1" value="{{prs.invoice.amount}}"  >
+                            </div>
+                            <div class="col-sm-6"><label class="form-label">Paid Amount</label>
+                                <input type="number" class="form-control" name="paid_amount" placeholder="Paid Amount" style="width: 100%;"
+                                   min="0" step="1" value="{{prs.invoice.amount}}">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="add_visit" name="submit" type="submit" style="margin-top: 10px;">Edit record</button>
+                    </form>
+                </div>
+                
+                {% comment %} image modal {% endcomment %}
+                <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="reportModalLabel">Patient Report</h5>
+                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">X</button>
+                            </div>
+                            <div class="modal-body">
+                                <img src="" id="report_image_modal" alt="Patient Report" style="width: 100%; height: auto;">
+                                {% comment %} 
+                                    <!-- If it's a PDF -->
+                                    {% if patient.image.url.endswith:(".pdf") %}
+                                    <iframe src="{{ patient.image.url }}" style="width: 100%; height: 500px;" frameborder="0"></iframe> 
+                                {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    /* change image scr dynamically*/
+                    function showImageModal(imgElement) {
+                        var imageUrl = imgElement.getAttribute("data-src");
+                        document.getElementById("report_image_modal").src = imageUrl;
+                    }
+                </script>
+
+            {% endblock %}

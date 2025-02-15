@@ -21,6 +21,9 @@
 
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <style>
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
@@ -484,12 +487,12 @@
                         <div class="row" style="margin-top: 10px;">
                             <div class="col"><label class="form-label">Clinic Name</label>
                                 <input type="text" class="form-control" name="name" placeholder="Clinic Name" style="width: 100%;" 
-                                maxlength="50" {% if clinic.name %}value="{{clinic.name}}"{% endif %} oninput="validateInput(this)" required disabled>
+                                maxlength="50" {% if request.user.clinic.name %}value="{{request.user.clinic.name}}"{% endif %} oninput="validateInput(this)" required disabled>
                             </div>
                             <div class="col"><label class="form-label">State Name</label>
                               <select id="state" class="form-control" name="state" style="width: 100%;" required disabled>
-                                  {% if clinic.state %}
-                                  <option value="{{clinic.state.id}}" selected>{{clinic.state.name}}</options>
+                                  {% if request.user.clinic.state %}
+                                  <option value="{{request.user.clinic.state.id}}" selected>{{request.user.clinic.state.name}}</options>
                                   {% else %}
                                   <option value="">Select a state</option>
                                   {% endif %}
@@ -500,8 +503,8 @@
                         <div class="row" style="margin-top: 10px;">
                             <div class="col"><label class="form-label">City Name</label>
                               <select id="city" class="form-control" name="city" style="width: 100%;" required disabled>
-                                  {% if clinic.city %}
-                                  <option value="{{clinic.city.id}}" selected>{{clinic.city.name}}</options>
+                                  {% if request.user.clinic.city %}
+                                  <option value="{{request.user.clinic.city.id}}" selected>{{request.user.clinic.city.name}}</options>
                                   {% else %}
                                   <option value="">Select a city</option>
                                   {% endif %}
@@ -510,13 +513,13 @@
                             </div>
                             <div class="col"><label class="form-label">Pincode</label>
                               <input type="number" class="form-control" name="pincode" placeholder="XXXXXX" style="width: 100%;" 
-                              min="100000" max="999999" {% if clinic.pincode %}value="{{clinic.pincode}}"{% endif %}oninput="validateInput(this)" required disabled>
+                              min="100000" max="999999" {% if request.user.clinic.pincode %}value="{{request.user.clinic.pincode}}"{% endif %}oninput="validateInput(this)" required disabled>
                             </div>
                         </div>
                         <div class="row" style="margin-top: 10px;">
                               <div class="col"><label class="form-label">Address</label>
                                   <input type="text" class="form-control" name="address" placeholder="Address" style="width: 100%;" 
-                                  maxlength="150" {% if clinic.address %}value="{{clinic.address}}"{% endif %} oninput="validateInput(this)" required disabled>
+                                  maxlength="150" {% if request.user.clinic.address %}value="{{request.user.clinic.address}}"{% endif %} oninput="validateInput(this)" required disabled>
                               </div>
                             
                             {% comment %} <div class="col"><label class="form-label">Profile Image</label>
@@ -527,26 +530,28 @@
                         <div class="row" style="margin-top: 10px;">
                             <div class="col"><label class="form-label">Number</label>
                                 <input type="number" class="form-control" name="number" placeholder="XXXXXXXXXX" style="width: 100%;" 
-                                min="1000000000" max="9999999999" {% if clinic.number %}value="{{clinic.number}}"{% endif %} oninput="validateInput(this)" required disabled>
+                                min="1000000000" max="9999999999" {% if request.user.clinic.number %}value="{{request.user.clinic.number}}"{% endif %} oninput="validateInput(this)" required disabled>
                             </div>
                             <div class="col"><label class="form-label">Email</label>
                                 <input type="email" class="form-control" name="email" placeholder="example@gmail.com" style="width: 100%;" 
-                                maxlength="50" {% if clinic.email %}value="{{clinic.email}}"{% endif %} oninput="validateInput(this)" required disabled>
+                                maxlength="50" {% if request.user.clinic.email %}value="{{request.user.clinic.email}}"{% endif %} oninput="validateInput(this)" required disabled>
                             </div>                                                  
                         </div>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col"><label class="form-label">Specialization</label>
                                 <textarea name="specializations" class="form-control" placeholder="" style="width: 100%; resize:none;" 
-                                 oninput="validateInput(this)" rows="4" required disabled>{% if clinic.specializations %}{{clinic.specializations}}{% endif %}</textarea>
+                                 oninput="validateInput(this)" rows="4" required disabled>{% if request.user.clinic.specializations %}{{request.user.clinic.specializations}}{% endif %}</textarea>
                             </div>
                         </div>
                         
                       </div>
-
+                    
+                    {% if request.user.is_admin %}
                     <div class="modal-footer">
                         <button class="btn btn-primary" id="edit_clinic_detatils" name="edit" type="button">Edit</button>
                         <button class="btn btn-primary" id="add_clinic_detatils" name="submit" type="submit" style="display:none;">Save</button>
                     </div>
+                    {% endif %}
               </form>
             </div>
         </div>
