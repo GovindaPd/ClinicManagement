@@ -27,6 +27,7 @@
                     </tr>
                    </thead>
                    <tbody>
+                   {% if users %}
                     {% for user in users %}
                     <tr>
                         <td>{{forloop.counter}}</td>
@@ -48,6 +49,7 @@
                         </td>
                     </tr>
                     {% endfor %}
+                   {% endif %}
                    </tbody>
                   </table>
 

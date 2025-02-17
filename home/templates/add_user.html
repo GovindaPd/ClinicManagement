@@ -5,16 +5,16 @@
                 </div>
                 <hr>
                 <div class="justify-content-center">
-                    <form method="POST" action="{% url 'add_new_patient' %}" enctype="multipart/form-data" id="profile_form">
+                    <form method="POST" id="user_form">
                         {% csrf_token %}
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6"><label class="form-label">Username* <small id="username_error" style="color:red; display:none;">username is not available</small></label>
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Username must be unique" style="width: 100%;"
-                                     maxlength="50" value="" required oninput="checkUsername(this)">
+                                     maxlength="50" value="" required oninput="checkUnique(this)">
                             </div>
                             <div class="col-sm-6"><label class="form-label">Email* <small id="email_error" style="color:red; display:none;">email is not available</small></label>
                                 <input type="email" class="form-control" id="email" name="email" placeholder="Email must be unique" style="width: 100%;"
-                                     maxlength="50" value="" required oninput="checkemail(this)">
+                                     maxlength="50" value="" required oninput="checkUnique(this)">
                             </div>
                             {% comment %} <div class="col-sm-6"><label class="form-label">Age</label>
                                 <input type="number" class="form-control" name="age" placeholder="Age" style="width: 100%;"
@@ -22,23 +22,40 @@
                             </div> {% endcomment %}
                         </div>
                         <div class="row" style="margin-top: 10px;">
-                            <div class="col-sm-6"><label class="form-label">First Name</label>
-                                <input type="text" class="form-control" name="name" placeholder="First Name" style="width: 100%;"
+                            <div class="col-sm-6">
+                                <label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="first" placeholder="First Name" style="width: 100%;"
                                      maxlength="50" value="">
                             </div>
-                            <div class="col-sm-6"><label class="form-label">Last Name</label>
-                                <input type="text" class="form-control" name="name" placeholder="Last Name" style="width: 100%;"
+                            <div class="col-sm-6">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="last_name" placeholder="Last Name" style="width: 100%;"
                                      maxlength="50" value="" >
                             </div>
-                            {% comment %} <div class="col-sm-6">
-                                <label class="form-label">Gender</label>
-                                <select class="form-control" name="gender" style="width: 100%;">
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            {% if request.user.is_superuser %}
+                            <div class="col-sm-6">
+                                <label class="form-label">User type</label>
+                                <select class="form-control" name="user_type" style="width: 100%;" required>
+                                    <option value="">Select User Type</option>
+                                    <option value="is_admin">Admin</option>
+                                    <option value="is_new_staff">Staff</option>
                                 </select>
                             </div>
+                            {% endif %}
+                            <div class="col-sm-6">
+                                <label class="form-label">Clinic</label>
+                                <select class="form-control" name="clinic" style="width: 100%;">
+                                    {% if request.user.is_superuser %}
+                                    <option value="">Select Clinic</option>
+                                    {% endif %}
+                                    {% for clinic in clinics %}
+                                    <option value="{{ clinic.0 }}">{{ clinic.1 }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% comment %}
                             <div class="col-sm-6">
                                 <label class="form-label">Contact Number</label>
                                 <input type="tel" class="form-control" name="number" placeholder="Contact Number" style="width: 100%;" pattern="[0-9]{10}" value="">
@@ -53,7 +70,6 @@
                                 <label class="form-label">Medical History</label>
                                 <textarea class="form-control" name="medical_history" placeholder="Medical History" style="width: 100%; resize: none;" rows="3" ></textarea>
                             </div> {% endcomment %}
-                        </div>
                         <div class="row" style="margin-top: 10px;">
                             {% comment %} <div class="col-sm-6">
                                 <label class="form-label">Blood Group</label>
@@ -86,26 +102,86 @@
 
 
                 <script>
-                    function checkUsername() {
-                        let username = $("#username").val();
-                        if (username.length < 3) {
-                            $("#username_error").hide();
-                            return;
-                        }
-                    
-                        $.ajax({
-                            url: "{% url 'check_unique' %}",
-                            type: "GET",
-                            data: { 'field': 'username', 'value':username },
-                            success: function(response) {
-                                console.error(response)
-                                if (response.exists) {
-                                    $("#username_error").show();
-                                } else {
-                                    $("#username_error").hide();
-                                }
+                    let usernameTimeout;
+                    function checkUnique(element){
+                        clearTimeout(usernameTimeout);
+                            let field = null;
+                            let value = null;
+                            let error = null;
+                        if (element.name == 'username'){
+                            field = 'username'
+                            value = element.value
+                            error = $("#username_error")
+                            
+                            if (value.length < 3) {
+                                element.setCustomValidity('username should be greator then 2 characters.');
+                                error.hide()
                             }
-                        });
+                            else {
+                                element.setCustomValidity('');
+                                usernameTimeout = setTimeout(function () {
+                                    $.ajax({
+                                        url: "{% url 'check_unique' %}",
+                                        type: "GET",
+                                        data: { 'field': field, 'value':value },
+                                        success: function(response) {
+                                            if (response.exists==true) {
+                                                error.css('color','red')
+                                                error.html(response.message)
+                                                error.show();
+                                            } else if(response.exists==false) {
+                                                error.css('color','green')
+                                                error.html(response.message)
+                                                error.show()
+                                            }
+                                        }
+                                    });
+                                }, 500);
+                            }
+                        }
+                        else if(element.name == 'email'){
+                            field = 'email'
+                            value = element.value
+                            error = $("#email_error")
+                            
+                            const emaileRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                            const multipleTLDRegex = /\.(com|org|net|edu|gov|mil|info|in)\.[a-zA-Z]{2,}$/;
+
+                            if (!emaileRegex.test(value)) {
+                                element.setCustomValidity('Invalid email format. Please enter a valid email.');
+                                error.hide()
+                            }
+                            else if (multipleTLDRegex.test(value)) {
+                                element.setCustomValidity('Invalid email multiple domains (e.g., ".com.in") are not allowed.');
+                                error.hide()
+                            }
+                            else if (value.length > 51) {
+                                element.setCustomValidity('Invalid email length should be less then 50 characters.');
+                                error.hide()
+                            }
+                            else {
+                                element.setCustomValidity('');
+                                usernameTimeout = setTimeout(function () {
+                                    $.ajax({
+                                        url: "{% url 'check_unique' %}",
+                                        type: "GET",
+                                        data: { 'field': field, 'value':value },
+                                        success: function(response) {
+                                            if (response.exists==true) {
+                                                error.css('color','red')
+                                                error.html(response.message)
+                                                error.show();
+                                            } else if(response.exists==false) {
+                                                error.css('color','green')
+                                                error.html(response.message)
+                                                error.show()
+                                            }
+                                        }
+                                    });
+                                }, 500);
+                            }
+                        }
+                        element.reportValidity();
                     }
-                    </script>
+                </script>
             {% endblock %}

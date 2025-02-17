@@ -13,7 +13,8 @@ from django.urls import resolve
 from urllib.parse import urlparse
 from django.utils.timezone import now
 from django.db import transaction
-
+from django.db import OperationalError, IntegrityError
+from django.core.exceptions import ValidationError
 from cities_light.models import Country, Region, City 
 from random import randint
 
@@ -91,7 +92,7 @@ def login_in(request):
 def logout_user(request):
     logout(request)
     messages.success(request, "Logout successfully")
-    return render(request, 'login.html')
+    return redirect('login')
 
 
 def reset_password(request, token):
@@ -148,7 +149,6 @@ def forget_password(request):
   
 
 def otp_verification(request, id):
-    print("here----------")
     if request.method == 'POST':
         user = get_object_or_404(User, custom_id=id)
         otp = request.POST.get('otp')
@@ -172,7 +172,6 @@ def otp_verification(request, id):
 
 def change_password(request):
     if request.method == 'POST':
-
         if token:= request.session.get('token'):
             email = TokenGenerator().validate_token(token)
 
@@ -235,52 +234,125 @@ def all_users(request):
             users = User.objects.exclude(username=request.user.username)
         elif request.user.is_admin:
             clinic = request.user.clinic
-            users = User.objects.filter(clinic=clinic)
-
+            if clinic:
+                users = User.objects.filter(clinic=clinic)
+            else:
+                users = None
         return render(request, 'user_list.html', {'users':users})
     
     return HttpResponseBadRequest()
 
 @login_required(login_url='login')
 def check_unique(request):
-    print("---------------------------")
     if request.method == 'GET':
         field = request.GET.get('field')
         value = request.GET.get('value')
         if field == 'email':
-            user = User.objects.filter(email=value)
-            return True if len(user)>0 else False
+            exists = User.objects.filter(email=value).exists()
+            
         elif field == 'username':
-            user = User.objects.filter(username=value)
-            return True if len(user)>0 else False
+            exists = User.objects.filter(username=value).exists()
         else:
-            return None
+            exists = None
+
+        if exists != None:
+            message = f"{field} is not available" if exists == True else f"{field} is available"
+        else:
+            message = None
+        return JsonResponse({'exists':exists, 'message':message})
     return HttpResponseBadRequest()
 
 
 
 @login_required(login_url='login')
 def add_user(request):
-    if request.method == 'GET':
-        # if request.user.is_superuser:
-        #     clinics = clinic.objects.all()
-        #     users = User.objects.exclude(username=request.user.username)
-        if request.user.is_admin:
-            clinic = request.user.clinic
-            # users = User.objects.filter(clinic=clinic)
-
-        return render(request, 'add_user.html')
-    if request.method == 'POST':
-
-        return redirect('all_users')
+    if not any([request.user.is_superuser, request.user.is_admin]):
+        return HttpResponseForbidden(f"{request.user.is_superuser=} or {request.user.is_admin=}:")
     
+    if request.method == 'GET':
+        if request.user.is_superuser:
+            clinics = Clinic.objects.all().values_list('id','name')
+        elif request.user.is_admin:
+            if not request.user.clinic:
+                messages.error(request, "You have not fill your clinic details yet.")
+                return redirect('all_users')
+        return render(request, 'add_user.html', {'clinics':clinics})
+    
+    elif request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name','')
+        last_name = request.POST.get('last_name','')
+        user_type = request.POST.get('user_type','')
+        clinic = request.POST.get('clinic', None)
+        
+        if clinic:
+            xyz = Clinic.objects.filter(id=clinic)
+            if xyz.exists():
+                clinic = xyz.first()
+                clinic_exists = True
+        else:
+            clinic = None
+            clinic_exists = False
+
+        if request.user.is_superuser:
+            if user_type == 'admin':
+                is_admin = True
+                is_new_staff = False
+            elif user_type == 'is_new_staff':
+                is_admin = False
+                is_new_staff = True
+                
+                if not clinic and not clinic_exists:
+                    messages.error(request, "You do not have selected any clinic.")
+                    return redirect('all_users')
+            else:
+                messages.error("user type is not defined")
+                return redirect('all_users')
+        else:
+            is_admin = False
+            is_new_staff = True
+            if not clinic and not clinic_exists:
+                messages.error(request, "You do not have selected any clinic.") 
+                return redirect('all_users')
+
+        try:
+            user = User.objects.create(
+                username    = username,
+                email       = email,
+                first_name  = first_name,
+                last_name   = last_name,
+                is_admin    = is_admin,
+                is_new_staff = is_new_staff,
+                clinic       = clinic
+            )
+            default_password = "temp1234"
+            user.set_password(default_password)
+            user.save()
+            messages.success(request, f"New account has been created successfully {username=} and {default_password=}")
+
+            send_mail(
+                subject = f"New accounted on created on {settings.WEBSITE_NAME}",
+                message = f"your username is {username} and temporary password is {default_password}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email,],
+                fail_silently=False
+            )
+            
+        # except IntegrityError as e:
+        #      messages.error(request, "Error within form data.")
+        # except ValidationError as ve:
+        #     messages.error(request, "Error within form data validation.")
+        except OperationalError:
+            messages.error(request, "Database server being down or unreachable.")
+        # except ValueError:
+        #     messages.error(request, "Value error.")
+        
+        return redirect('all_users')
     return HttpResponseBadRequest()
-# if request.user.is_admin:
-#     clinics = User.objects.clinics.all()
-#     if clinics:
-#         user.objects.filter(Clinics__in=clinics)
 
-
+# if clinics:
+#     user.objects.filter(Clinics__in=clinics)
 
 
 
@@ -401,6 +473,9 @@ def patients(request):
 def add_new_patient(request):
     if request.user.is_admin:
         if request.method == 'GET':
+            if not request.user.clinic:
+                messages.error(request, "You have not fill your clinic details yet.")
+                return redirect('patients')
             return render(request, 'add_new_patient.html')
         
         if request.method == 'POST':
@@ -686,4 +761,4 @@ def delete_patient_visit(request, patient_id, visit_id):
 @login_required(login_url='login')
 def rough(request):
     if request.method == 'GET':
-        return render(request, 'chess.html')
+        return render(request, 'hekathon.html')#'chess.html'

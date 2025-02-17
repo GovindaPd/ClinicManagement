@@ -35,7 +35,7 @@ class Clinic(models.Model):
     email   = models.EmailField(max_length=50, blank=True, null=True)
     
     specializations = models.TextField(blank=True, null=True)   #clinic specilization
-    created_at = models.DateField(auto_now=True)
+    created_at = models.DateField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.name}"
@@ -47,11 +47,9 @@ class User(AbstractUser):
     is_admin        = models.BooleanField(default=False)
     is_new_staff    = models.BooleanField(default=False)
     otp             = models.CharField(max_length=5, blank=True, null=True)
-    is_password_reset = models.BooleanField(default=False)
     profile_img     = models.ImageField(upload_to=rename_image, blank=True)  
     is_password_reset = models.BooleanField(default=False)
     clinic          = models.ForeignKey(Clinic, on_delete=models.CASCADE, null=True, blank=True)
-    
 
     # phone = models.CharField(max_length=10, blank=True)
     # token = models.CharField(max_length=255, null=True, blank=True, default="")
@@ -71,8 +69,17 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username}"
 
-        
-    
+
+
+class Notification(models.Model):
+    to    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    from_user  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sender', null=True, blank=True)
+    message = models.CharField(max_length=250, blank=False, null=False)        
+    seen    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+
 # class UserProfile(modes.Model):
     # user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
 
@@ -103,7 +110,7 @@ class Patient(models.Model):
     medical_history = models.TextField(blank=True)
     image       = models.ImageField(upload_to=rename_image, blank=True)
     blood_group = models.CharField(max_length=5, choices=BLOOD_GROUPS, blank=True, null=True)
-    created_at  = models.DateField(auto_now=True)
+    created_at  = models.DateField(auto_now_add=True)
 
     def delete(self, *args, **kwargs):
         if self.image:
@@ -120,7 +127,7 @@ class Prescription(models.Model):
     symptoms    = models.TextField(blank=True)
     prescription = models.TextField(blank=True)
     image       = models.ImageField(upload_to=rename_image, blank=True)
-    visit_date  = models.DateTimeField(auto_now=True)
+    visit_date  = models.DateTimeField(auto_now_add=True)
     next_visit  = models.DateField(blank=True, null=True)
 
     def delete(self, *args, **kwargs):
