@@ -12,7 +12,7 @@
                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto; position: relative;">
                   <table class="table table-bordered">
                     
-                   <thead class="table-dark" style="position: sticky; top: 0; z-index: 1000;">
+                   <thead class="table-dark" style="position: sticky; top: 0; z-index: 500;">
                     <tr>
                         <th scope="col">S.no.</th>
                         <th scope="col">Id</th>
@@ -40,7 +40,16 @@
                         <td>{{user.email}}</td>
                         <td>{{user.date_joined}}</td>
                         <td>{{user.clinic.name}}</td>
-                        <td>{% if user.active %}Active{% else %}Not Active{% endif %}</td>
+                        <td>
+                            <form class="user_activation_form" method="POST" action="{% url 'update_user_status' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{user.custom_id}}">
+                            <select class="form-control bg-primary text-light" name="status" onchange="this.form.submit()">
+                                <option value="1" {% if user.is_active %}selected{% endif %}>Active</option>
+                                <option value="0" {% if not user.is_active %}selected{% endif %}>Deactive</option>
+                            </select>
+                            </form>
+                        </td>
                         {% comment %} <td>
                           <a class="btn btn-primary" href="{% url 'patient_details' patient_id=patient.id %}">View</a>
                         </td> {% endcomment %}

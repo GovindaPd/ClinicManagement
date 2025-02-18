@@ -74,7 +74,7 @@ class User(AbstractUser):
 class Notification(models.Model):
     to    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     from_user  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sender', null=True, blank=True)
-    message = models.CharField(max_length=250, blank=False, null=False)        
+    message = models.TextField(max_length=250, blank=False, null=False)        
     seen    = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

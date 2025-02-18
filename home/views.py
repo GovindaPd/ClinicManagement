@@ -242,6 +242,7 @@ def all_users(request):
     
     return HttpResponseBadRequest()
 
+
 @login_required(login_url='login')
 def check_unique(request):
     if request.method == 'GET':
@@ -276,6 +277,7 @@ def add_user(request):
             if not request.user.clinic:
                 messages.error(request, "You have not fill your clinic details yet.")
                 return redirect('all_users')
+            clinics = Clinic.objects.filter(id = request.user.clinic.id).values_list('id','name')
         return render(request, 'add_user.html', {'clinics':clinics})
     
     elif request.method == 'POST':
@@ -329,6 +331,23 @@ def add_user(request):
             default_password = "temp1234"
             user.set_password(default_password)
             user.save()
+            
+            from_user   = request.user.username,
+            to          = username,
+           
+            # if user.is_admin:
+            #      message = f"""Dear {username}
+            # Congratulations! Your account, has been successfully added to our system. 🚀Now you can start managing patient records, appointments, and more—all in one place!
+            # 📌Need help getting started? Check out our [Help Center] or reach out to our support team anytime.
+            # Thank you for trusting {settings.WEBSITE_NAME} to streamline your clinic management! 💙"""
+            # elif user.is_new_staff:
+            #     message = f"Welcome to {clinic.name}! We’re excited to have you on board and look forward to the amazing impact you’ll bring to our team and patients. 
+            #     Wishing you success in this new journey! ✨"
+            # noti = Notifications.objects.create(
+            #         from_user = from_user,
+            #         to        = to,
+            #         message   = message                             
+            # )
             messages.success(request, f"New account has been created successfully {username=} and {default_password=}")
 
             send_mail(
@@ -353,6 +372,43 @@ def add_user(request):
 
 # if clinics:
 #     user.objects.filter(Clinics__in=clinics)
+
+@login_required(login_url='login')
+def update_user_status(request):
+    if request.method == 'POST':
+        custom_id = request.POST.get('user_id')
+        try:
+            status    = int(request.POST.get('status',''))
+        except ValueError:
+            return HttpResponseBadRequest()
+        active,msg = (True, "{} account activated successfully.") if status else (False, "{} account deactivated successfully.")
+
+        if request.user.is_superuser:
+            users = User.objects.filter(custom_id=custom_id)
+            if users.exists():
+                user = users.last()
+                user.is_active = active
+                user.save()
+                messages.info(request, msg.format(user.username))
+            else:
+                messages.error(request, "There is no user with given id.")
+            
+        elif request.user.is_admin:
+            if request.user.clininc:
+                users = User.objects.filter(custom_id=custom_id, clinic=request.user.clininc)
+                if users.exists():
+                    user = users.last()
+                    user.is_active = active
+                    user.save()
+                    messages.info(request, msg.format(user.username))
+                else:
+                     messages.error(request, "There is no user with given id.") 
+            else:
+                messages.error(request, "You do not have fill clinic details yet.") 
+        else:
+            return HttpResponseForbidden()
+        return redirect('all_users')
+    return HttpResponseBadRequest()          
 
 
 
@@ -518,6 +574,8 @@ def add_new_patient(request):
                 messages.error(request, "There is an error with form data.")
 
             return redirect('patients')
+    else:
+        return HttpResponseForbidden()
         
 
 @login_required(login_url='login')
