@@ -1,10 +1,13 @@
+#internal imports
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.files.storage import default_storage
+from django.utils import timezone
 
-from django.utils.timezone import now
-
+#exteranl imports
 from cities_light.models import Region, City
+
+#python imports
 from random import randint
 import random
 import string
@@ -15,7 +18,7 @@ import os
 def rename_image(instance, filename):
     extension = os.path.splitext(filename)[1]
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    new_name = f"{random_string}_{now().strftime('%d%m%Y%H%M%S')}{extension}"
+    new_name = f"{random_string}_{timezone.now().strftime('%d%m%Y%H%M%S')}{extension}"
     
     if isinstance(instance, User):
         return os.path.join('profile_img/', new_name)
@@ -156,6 +159,19 @@ class Invoice(models.Model):
         return f"ID: {self.prescription.id}, Amount: {self.amount}"
 
 
+class PasswordResetOTP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='password_reset_otp')
+    otp_code = models.CharField(max_length=6, blank=False, null=False)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # session_token = models.UUIDField(default=uuid.uuid4, unique=True)
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
+    
+    def __str__(self):
+        return f"OTP for {self.user.username} - {self.otp_code}"
 
 
 # class MedicalRecord(models.Model):

@@ -50,7 +50,7 @@ def get_url_name(full_url):
 
 def login_in(request):
     if request.method == 'GET':
-        return render(request, 'login.html')
+        return render(request, 'login.html', {"login_page": True})
     
     if request.method == "POST":
         username = request.POST.get('username')
@@ -59,8 +59,8 @@ def login_in(request):
         user = authenticate(request, username=username, password=password)
 
         if user is None:
-            messages.error(request, "Invalid Credentional")
-            return render(request, 'login.html')
+            messages.error(request, "Invalid Credentionals!")
+            return render(request, 'login.html', {"login_page": True})
                
         if user.is_superuser:
             login(request, user)
@@ -91,7 +91,7 @@ def login_in(request):
 @login_required(login_url='login')
 def logout_user(request):
     logout(request)
-    messages.success(request, "Logout successfully")
+    messages.success(request, "Logout successfully!")
     return redirect('login')
 
 
@@ -121,22 +121,22 @@ def reset_password(request, token):
 
 
 def forget_password(request):  
-    if request.method == 'GET':
-        return render(request, 'forget_password.html')
+    # if request.method == 'GET':
+    #     return render(request, 'forget_password.html')
 
     if request.method == 'POST':
         email = request.POST.get('email')
         
         if not email:
-            messages.error(request, "Invalid email")
+            messages.error(request, "Invalid email!")
             return render(request, 'forget_password.html')
         
         if email:
             try:
                 user = get_object_or_404(User, email=email)
             except Http404:
-                messages.error(request, "Email is not registered.")
-                return render(request, 'forget_password.html')
+                messages.error(request, "Email is not registered!")
+                return render(request, 'login.html', {'login_page': False})
 
             otp = generate_otp()
             user.otp = otp
@@ -358,18 +358,24 @@ def add_user(request):
                 fail_silently=False
             )
             
-        # except IntegrityError as e:
-        #      messages.error(request, "Error within form data.")
-        # except ValidationError as ve:
-        #     messages.error(request, "Error within form data validation.")
+        except IntegrityError as e:
+             messages.error(request, "Error within form data.")
+        except ValidationError as ve:
+            messages.error(request, "Error within form data validation.")
         except OperationalError:
             messages.error(request, "Database server being down or unreachable.")
-        # except ValueError:
-        #     messages.error(request, "Value error.")
+        except ValueError:
+            messages.error(request, "Value error.")
         
         return redirect('all_users')
     return HttpResponseBadRequest()
 
+
+
+@login_required(login_url='login')
+def edit_user(request):
+    if not any([request.user.is_superuser, request.user.is_admin]):
+        return HttpResponseForbidden(f"{request.user.is_superuser=} or {request.user.is_admin=}")
 # if clinics:
 #     user.objects.filter(Clinics__in=clinics)
 

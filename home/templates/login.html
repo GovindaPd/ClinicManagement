@@ -20,79 +20,136 @@
 
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    
+    <style>
+    
+    /* Full page background */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      {% comment %} background: linear-gradient(135deg, #6a11cb, #2575fc); /* Gradient bg */ {% endcomment %}
+      font-family: 'Poppins', sans-serif;
+    }
 
+    .login-card {
+      position: relative;
+      max-width: 400px;
+      width: 400px;
+      height: auto;
+      min-height: 400px;
+      {% comment %} padding: 3rem 2rem; {% endcomment %}
+      border-radius: 20px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      color: white;
+      overflow: hidden;
+
+      display: flex;                /* enables flexbox */
+      flex-direction: column;       /* stack children vertically */
+      justify-content: center;      /* center vertically */
+      align-items: center; 
+    } 
+
+    .login-card form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem; /* spacing between inputs */
+    }   
+    .login-card h2 {
+      margin-bottom: 1.5rem;
+      font-weight: bold;
+    }
+
+    .form-control {
+      border-radius: 10px;
+    }
+    .btn-custom {
+      border-radius: 10px;
+      color: white;
+      transition: 0.3s;
+    }
+    .btn-custom:hover {
+      color: #586e9eff;
+    }
+    .update-form-p{
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .update-form-p:hover {
+      text-decoration: underline;
+      color: #586e9eff;
+    }
+
+    .form-check-label {
+      color: #f1f1f1;
+    }
+  </style>
 </head>
 
-<body class="" style="background:#e6f7ff;">
+<body class="" style="background: url({% static 'img/clinic.png' %}) repeat center center; background-size: auto auto;">
     {% comment %} #e6f7ff, #008080, #e3f2fd , #004d40{% endcomment %}
-
-    <div class="container">
-
-        <!-- Outer Row -->
-        <div class="row justify-content-center" style="min-height: 100vh; padding-top:18%;">
-            
-            <div class="col-xl-10 col-lg-10 col-md-10" style="min-height: 50vh;">
-            {% comment %} <div class="col-xl-10 col-lg-12 col-md-9 pt-5"> {% endcomment %}
-                <div class="card o-hidden border-0 shadow-lg">
-                    <div class="card-body p-0">
-                        <!-- Nested Row within Card Body -->
-                        <div class="row">
-                            <div class="col-lg-6 d-none d-lg-block" style="background-image: url({% static 'img/doctor-patient-management.webp' %}); background-size: cover; background-position: center; min-height: 50vh;">
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="d-flex flex-column justify-content-center p-5" style="height:100%;">
-                                    <div class="text-center">
-                                        <h3 class="h4 text-gray-900 mb-4">Welcome Back!</h3>
-                                        {% if messages %}
-                                        {% for message in messages %}
-                                            {% if message.tags == 'error' %}
-                                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                                <strong>{{ message }}</strong>
-                                                {% comment %} <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
-                                            </div>
-                                            {% else %}
-                                            <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
-                                                <strong>{{ message }}</strong>
-                                                {% comment %} <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
-                                            </div>
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% endif %}
-                                    </div>
-                                    <form class="user" method='POST' >
-                                        {% csrf_token %}
-                                        <div class="form-group">
-                                            <input type="username" name="username" class="form-control form-control-user"
-                                                id="exampleInputEmail" aria-describedby="emailHelp"
-                                                placeholder="Enter User Name..." required>
-                                        </div>
-                                        <div class="form-group">
-                                            <input type="password" name="password" class="form-control form-control-user"
-                                                id="exampleInputPassword" placeholder="Password" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <div class="custom-control custom-checkbox small">
-                                                <input type="checkbox" name="remember_me" class="custom-control-input" id="customCheck">
-                                                <label class="custom-control-label" for="customCheck">Remember Me For 30 Days</label>
-                                            </div>
-                                        </div>
-                                        <input class="btn btn-primary btn-user btn-block" type="submit" value="Login">
-                                    </form>
-                                    <hr style="width:100%">
-                                    <div class="text-center">
-                                        <a class="small" href="{% url 'forget_password' %}">Forgot Password?</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        
+    <div class="login-card text-center">
+      <div class="main-card" style="">
+        <div class="header-div">
+            <h3 class="h4 pb-2 heading-title" style="color: white !important;">Welcome Back!</h3>
+            {% if messages %}
+              {% for message in messages %}
+                {% if message.tags == 'error' %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                    {% comment %} <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
                 </div>
-
-            </div>
-
+                {% else %}
+                <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                    {% comment %} <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
+                </div>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
         </div>
+        
+        <!-- login form -->
+        <form id="loginForm" class="loginform" method='POST' style="display: {% if login_page %}block{% else %}none{% endif %};">
+          {% comment %} {% if login_page %}block{% else %}none{% endif %} {% endcomment %}
+          {% csrf_token %}
+          <div class="mb-3">
+              <input type="username" class="form-control form-control-user" id="username" name="username" aria-describedby="emailHelp" placeholder="username" required style="text-align: center; font-weight: bold;">
+          </div>
+          <div class="mb-3">
+              <input type="password" class="form-control form-control-user" id="password" name="password" placeholder="password" required style="text-align: center; font-weight: bold;">
+          </div>
+          <div class="form-check text-start mb-3">
+              <input class="form-check-input" type="checkbox" id="rememberMe">
+              <label class="form-check-label" for="rememberMe" style="color:white;">Remember me for 30 days</label>
+          </div>
+          <button type="submit" class="btn btn-custom w-100" style="background: rgba(255, 255, 255, 0.15);">Sign In</button>
+        </form>
+        
+        <!-- forget password form -->
+        <form class="forget-password-from" id="forgetPasswordFrom" method="POST" action="{% url 'forget_password' %}" style="display: {% if not login_page %}block{% else %}none{% endif %};">
+            {% comment %} {% if not login_page %}block{% else %}none{% endif %} {% endcomment %}
+            {% csrf_token %}
+            <div class="mb-3">
+              <input type="email" class="form-control form-control-user" name="email" aria-describedby="emailHelp" placeholder="enter your email here" required style="text-align: center; font-weight: bold;">
+            </div>
+            <button type="submit" class="btn btn-custom w-100" style="background: rgba(255, 255, 255, 0.15);">Submit</button>
+        </form>
 
+        <hr style="width:100%;">
+        <p class="update-form-p mt-3" id="update-form-p">{% if login_page %}Forgot Password?{% else %}Sign In?{% endif %}</p>
+        {% comment %} <p class="forget-passord-p mt-3" ><a href="{% url 'forget_password' %}" class="forget-password">Forgot Password?</a></p> {% endcomment %}
+      
+        </div
     </div>
+
+
+        
 
     <!-- Bootstrap core JavaScript-->
     <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
@@ -103,6 +160,31 @@
 
     <!-- Custom scripts for all pages-->
     <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+    <!-- custom javascript -->
+    <script>
+      document.getElementById('update-form-p').addEventListener('click', function() {
+        
+        let loginForm = document.getElementById('loginForm');
+        let forgetPasswordForm = document.getElementById('forgetPasswordFrom');
+        let updateFormP = document.getElementById('update-form-p');
+        let headingTtile = document.querySelector('.heading-title');
+
+        if (loginForm.style.display === 'none') {
+          loginForm.style.display = 'block';
+          forgetPasswordForm.style.display = 'none';
+          updateFormP.textContent = 'Forgot Password?';
+          headingTtile.textContent = 'Welcome Back!';
+        } else {
+          loginForm.style.display = 'none';
+          forgetPasswordForm.style.display = 'block';
+          updateFormP.textContent = 'Sign In?';
+          headingTtile.textContent = 'Reset Password!';
+        }
+      });
+    </script>
+     <!-- end custom javascript -->
+
 </body>
 
 </html>
