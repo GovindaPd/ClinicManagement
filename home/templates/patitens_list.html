@@ -10,9 +10,9 @@
 
 
                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto; position: relative;">
-                  <table class="table table-bordered">
+                  <table class="table" style="borde: 1px solid rgba(33, 92, 120, 1);" >
                     
-                   <thead class="table-dark" style="position: sticky; top: 0; z-index: 1000;">
+                   <thead class="" style="position: sticky; top: 0; z-index: 1000; background: rgba(33, 92, 120, 1); color: white;"><!-- thead-dark -->
                     <tr>
                         <th scope="col">S.no.</th>
                         <th scope="col">Name</th>
@@ -23,10 +23,10 @@
                         <th scope="col">Address</th>
                         <th scope="col">Medical History</th>
                         <th scope="col">Created Date</th>
-                        <th scope="col">View</th>
-                        <th scope="col">Edit</th>
+                        <th scope="col">Action</th>
+                        {% comment %} <th scope="col">Edit</th>
                         <th scope="col">New Visit</th>
-                        <th scope="col">Delete</th>
+                        <th scope="col">Delete</th> {% endcomment %}
                     </tr>
                    </thead>
                    <tbody>
@@ -41,8 +41,22 @@
                         <td>{{patient.address}}</td>
                         <td>{{patient.medical_history}}</td>
                         <td>{{patient.created_at}}</td>
-                        <td>
-                          <a class="btn btn-primary" href="{% url 'patient_details' patient_id=patient.id %}">View</a>
+                        <td style="">
+                            <div class="action-links" style="gap: 10px; display: flex; align-items: center;">
+                                <a href="{% url 'add_patient_visit' patient_id=patient.id %}" class="action-link create" title="Create">
+                                  <i class="fas fa-plus"></i>
+                                </a>
+                                <a href="{% url 'patient_details' patient_id=patient.id %}" class="action-link view" title="View">
+                                  <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'edit_patient' patient_id=patient.id  %}" class="action-link update" title="Edit">
+                                  <i class="fas fa-pen"></i>
+                                </a>
+                                <a class="action-link delete" data-toggle="modal" data-target="#deleteConfirmModal"  data-url="{% url 'delete_patient' patient_id=patient.id %}" onclick="showDeleteModal(this)" title="Delete">
+                                  <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                          {% comment %} <a class="btn btn-primary" href="{% url 'patient_details' patient_id=patient.id %}">View</a>
                         </td>
                         <td>
                           <a class="btn btn-primary" href="{% url 'edit_patient' patient_id=patient.id  %}">Edit</a>
@@ -53,7 +67,7 @@
                         <td>
                           <a class="btn btn-danger" data-toggle="modal" data-target="#deleteConfirmModal" 
                             data-url="{% url 'delete_patient' patient_id=patient.id %}" onclick="showDeleteModal(this)">Delete</a>
-                        </td>
+                        </td> {% endcomment %}
                     </tr>
                     {% endfor %}
                    </tbody>
