@@ -1,4 +1,5 @@
 {% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,7 +11,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Login</title>
+    <title>Doctor-Patitent Login</title>
 
     <!-- Custom fonts for this template-->
     <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
@@ -20,75 +21,140 @@
 
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    
     <style>
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield; /* Firefox */
-        }
+    
+    /* Full page background */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      {% comment %} background: linear-gradient(135deg, #6a11cb, #2575fc); /* Gradient bg */ {% endcomment %}
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .login-card {
+      position: relative;
+      max-width: 400px;
+      width: 400px;
+      height: auto;
+      min-height: 400px;
+      {% comment %} padding: 3rem 2rem; {% endcomment %}
+      border-radius: 20px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      color: white;
+      overflow: hidden;
+
+      display: flex;                /* enables flexbox */
+      flex-direction: column;       /* stack children vertically */
+      justify-content: center;      /* center vertically */
+      align-items: center; 
+    } 
+
+    .login-card form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem; /* spacing between inputs */
+    }   
+    .login-card h2 {
+      margin-bottom: 1.5rem;
+      font-weight: bold;
+    }
+
+    .form-control {
+      border-radius: 10px;
+    }
+    .btn-custom {
+      border-radius: 10px;
+      color: white;
+      text-align: center;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .btn-custom:hover {
+      color: #586e9eff;
+    }
+    .update-form-p{
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .update-form-p:hover {
+      text-decoration: underline;
+      color: #586e9eff;
+    }
+
+    .form-check-label {
+      color: #f1f1f1;
+    }
+
+    input[type="number"], input[type="text"], input[type="password"], input[type="email"] {
+        text-align: center;
+        font-weight: bold;
+    }
+    input[type="submit"]{
+        text-align: center;
+        font-weight: bold;
+        color:white;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield; /* Firefox */
+    }
 
   </style>
 </head>
 
-<body class="" style="background:#e6f7ff;">
-
-    <div class="container">
-
-        <!-- Outer Row -->
-        <div class="row justify-content-center" style="min-height: 100vh; padding-top:18%;">
-
-            <div class="col-xl-10 col-lg-10 col-md-10">
-                <div class="card o-hidden border-0 shadow-lg">
-                    <div class="card-body p-0">
-                        <!-- Nested Row within Card Body -->
-                        <div class="row">
-                            <!-- Left Side with Background Image -->
-                            <div class="col-lg-6 d-none d-lg-block" style="background-image: url({% static 'img/doctor-patient-management.webp' %}); background-size: cover; background-position: center; min-height: 50vh;">
-                            </div>
-                            <!-- Right Side with Form -->
-                            <div class="col-lg-6">
-                                <div class="d-flex flex-column justify-content-center p-5" style="height:100%;">
-                                    <div class="text-center">
-                                        <h3 class="h4 text-gray-900 mb-4">Verify OTP!</h3>
-                                        <p>We have sent a 5 digits verification code to your email id. Enter the code from the email in the field below.</p>
-                                        
-                                        {% if messages %}
-                                        {% for message in messages %}
-                                            {% if message.tags == 'error' %}
-                                            <div class="alert alert-danger alert-dismissible fade show pr-3" role="alert">
-                                                <strong>{{ message }}</strong>
-                                            </div>
-                                            {% else %}
-                                            <div class="alert alert-{{message.tags}} alert-dismissible fade show pr-3" role="alert">
-                                                <strong>{{ message }}</strong>
-                                            </div>
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% endif %}
-
-                                    </div>
-                                    <form class="user" action="{% url 'otp_verification' id=id %}" method="POST">
-                                        {% csrf_token %}
-                                        <div class="form-group">
-                                            <input type="number" name="otp" maxlength="5" minlength="5" pattern="^[0-9]{5}$" title="otp should be 5 digits" class="form-control form-control-user" 
-                                            placeholder="00000" required style="text-align: center;">
-                                        </div>
-                                        <input class="btn btn-primary btn-user btn-block" type="submit" value="Verify OTP">
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<body class="" style="background: url({% static 'img/clinic.png' %}) repeat center center; background-size: auto auto;">
+    {% comment %} #e6f7ff, #008080, #e3f2fd , #004d40{% endcomment %}
+        
+    <div class="login-card text-center">
+      <div class="main-card" style="">
+        <div class="header-div">
+            <h3 class="h4 pb-2 heading-title" style="color: white !important;">Verify OTP!</h3>
+            <p class="pb-2" style="color: white !important;  max-width: 30ch; line-height: 1.6;">We have sent a 5 digits verification code to your email.</p>
+            
+            {% if messages %}
+              {% for message in messages %}
+                {% if message.tags == 'error' %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                    {% comment %} <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
                 </div>
-
-            </div>
-
+                {% else %}
+                <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                    {% comment %} <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
+                </div>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
         </div>
-
+        
+        <!-- OTP verification form -->
+        <form class="otp-verification-form" action="{% url 'otp_verification' id=id %}" method="POST">
+          {% csrf_token %}
+          <div class="mb-3">
+              <input type="text" name="otp" maxlength="5" minlength="5" pattern="^[0-9]{5}$" title="otp should be 5 digits" class="form-control form-control-user" 
+                placeholder="00000" required>
+          </div>
+          <button type="submit" class="btn btn-custom w-100" style="background: rgba(255, 255, 255, 0.15);">Verify</button>
+        </form>
+        
+        <hr style="width:100%;">
+        <p class="mt-3" style="color:white; max-width: 30ch; line-height: 1.6;">Didn't receive the verification code? Please check your spam or junk folder. If you still haven't received it, <a class="update-form-p" href="#" style="color:black;">click here to resend the code.</a></p>
     </div>
+    </div>
+
+
+        
 
     <!-- Bootstrap core JavaScript-->
     <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
@@ -99,6 +165,31 @@
 
     <!-- Custom scripts for all pages-->
     <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+    <!-- custom javascript -->
+    {% comment %} <script>
+      document.getElementById('update-form-p').addEventListener('click', function() {
+        
+        let loginForm = document.getElementById('loginForm');
+        let forgetPasswordForm = document.getElementById('forgetPasswordFrom');
+        let updateFormP = document.getElementById('update-form-p');
+        let headingTtile = document.querySelector('.heading-title');
+
+        if (loginForm.style.display === 'none') {
+          loginForm.style.display = 'block';
+          forgetPasswordForm.style.display = 'none';
+          updateFormP.textContent = 'Forgot Password?';
+          headingTtile.textContent = 'Welcome Back!';
+        } else {
+          loginForm.style.display = 'none';
+          forgetPasswordForm.style.display = 'block';
+          updateFormP.textContent = 'Sign In?';
+          headingTtile.textContent = 'Reset Password!';
+        }
+      });
+    </script> {% endcomment %}
+     <!-- end custom javascript -->
+
 </body>
 
 </html>

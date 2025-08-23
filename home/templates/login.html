@@ -71,6 +71,8 @@
     .btn-custom {
       border-radius: 10px;
       color: white;
+      text-align: center;
+      font-weight: bold;
       transition: 0.3s;
     }
     .btn-custom:hover {
@@ -89,6 +91,12 @@
     .form-check-label {
       color: #f1f1f1;
     }
+
+    input[type="number"], input[type="text"], input[type="password"], input[type="email"] {
+        text-align: center;
+        font-weight: bold;
+    }
+    
   </style>
 </head>
 
@@ -119,10 +127,10 @@
           {% comment %} {% if login_page %}block{% else %}none{% endif %} {% endcomment %}
           {% csrf_token %}
           <div class="mb-3">
-              <input type="username" class="form-control form-control-user" id="username" name="username" aria-describedby="emailHelp" placeholder="username" required style="text-align: center; font-weight: bold;">
+              <input type="text" class="form-control form-control-user" id="username" name="username" aria-describedby="emailHelp" placeholder="username" required>
           </div>
           <div class="mb-3">
-              <input type="password" class="form-control form-control-user" id="password" name="password" placeholder="password" required style="text-align: center; font-weight: bold;">
+              <input type="password" class="form-control form-control-user" id="password" name="password" placeholder="password" required>
           </div>
           <div class="form-check text-start mb-3">
               <input class="form-check-input" type="checkbox" id="rememberMe">
@@ -136,16 +144,16 @@
             {% comment %} {% if not login_page %}block{% else %}none{% endif %} {% endcomment %}
             {% csrf_token %}
             <div class="mb-3">
-              <input type="email" class="form-control form-control-user" name="email" aria-describedby="emailHelp" placeholder="enter your email here" required style="text-align: center; font-weight: bold;">
+              <input type="email" class="form-control form-control-user" name="email" aria-describedby="emailHelp" placeholder="enter your email here" required>
             </div>
             <button type="submit" class="btn btn-custom w-100" style="background: rgba(255, 255, 255, 0.15);">Submit</button>
         </form>
 
         <hr style="width:100%;">
-        <p class="update-form-p mt-3" id="update-form-p">{% if login_page %}Forgot Password?{% else %}Sign In?{% endif %}</p>
+        <p class="update-form-p mt-3" id="update-form-p" style="font-weight:bold;">{% if login_page %}Forgot Password?{% else %}Sign In?{% endif %}</p>
         {% comment %} <p class="forget-passord-p mt-3" ><a href="{% url 'forget_password' %}" class="forget-password">Forgot Password?</a></p> {% endcomment %}
       
-        </div
+      </div>
     </div>
 
 
