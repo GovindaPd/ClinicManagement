@@ -43,16 +43,16 @@
                         <td>{{patient.created_at}}</td>
                         <td style="">
                             <div class="action-links" style="gap: 10px; display: flex; align-items: center;">
-                                <a href="{% url 'add_patient_visit' patient_id=patient.id %}" class="action-link create" title="Create">
+                                <a href="{% url 'add_patient_visit' patient_id=patient.id %}" class="action-link create" title="Create New Visit">
                                   <i class="fas fa-plus"></i>
                                 </a>
-                                <a href="{% url 'patient_details' patient_id=patient.id %}" class="action-link view" title="View">
+                                <a href="{% url 'patient_details' patient_id=patient.id %}" class="action-link view" title="View Details">
                                   <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{% url 'edit_patient' patient_id=patient.id  %}" class="action-link update" title="Edit">
+                                <a href="{% url 'edit_patient' patient_id=patient.id  %}" class="action-link update" title="Edit Record">
                                   <i class="fas fa-pen"></i>
                                 </a>
-                                <a class="action-link delete" data-toggle="modal" data-target="#deleteConfirmModal"  data-url="{% url 'delete_patient' patient_id=patient.id %}" onclick="showDeleteModal(this)" title="Delete">
+                                <a class="action-link delete" data-toggle="modal" data-target="#deleteConfirmModal"  data-url="{% url 'delete_patient' patient_id=patient.id %}" onclick="showDeleteModal(this)" title="Delete Record">
                                   <i class="fas fa-trash"></i>
                                 </a>
                             </div>
