@@ -34,7 +34,7 @@ def rename_image(instance, filename):
 class CustomUserManager(UserManager):
     def create_user(self, username, email=None, password=None, **extra_fields):
         if not username:
-            raise ValueError('The given username must be set')
+            raise ValueError('The username must be set')
         email = self.normalize_email(email)
         user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
@@ -107,7 +107,7 @@ class User(AbstractUser):
     
 
 class Clinic(models.Model):
-    name    = models.CharField(max_length=255, help_text="Clinic Name")
+    name    = models.CharField(max_length=255, help_text="Clinic Name", blank=False, null=False)
     address = models.CharField(max_length=255, blank=True)
     city    = models.ForeignKey(City, on_delete=models.SET_NULL, related_name="clinics_in_city", null=True, blank=True, max_length=255)
     state   = models.ForeignKey(Region, on_delete=models.SET_NULL, related_name="clinics_in_state", null=True, blank=True, max_length=255)

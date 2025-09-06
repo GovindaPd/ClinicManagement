@@ -14,9 +14,7 @@
 
     <!-- Custom fonts for this template-->
     <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
@@ -56,7 +54,7 @@
         height: 120px;
       }
       path {
-        stroke: #00ff99;
+        stroke: green; /* #00ff99; */
         stroke-width: 2.5;
         fill: none;
         stroke-dasharray: 1000;
@@ -115,16 +113,6 @@
       color: #586e9eff;
     }
 
-    {% comment %} .update-form-p{
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .update-form-p:hover {
-      text-decoration: underline;
-      color: #586e9eff;
-    } {% endcomment %}
-
     .form-check-label {
       color: #f1f1f1;
     }
@@ -181,13 +169,14 @@
             {% if messages %}
               {% for message in messages %}
                 {% if message.tags == 'error' %}
+                  <script> const strokeColor = true; </script>
                   <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
                   {% comment %} <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
                   </div>
                 {% else %}
-                <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
-                    {% comment %} <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
-                </div>
+                  <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                      {% comment %} <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
+                  </div>
                 {% endif %}
               {% endfor %}
             {% endif %}
@@ -241,12 +230,22 @@
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
     <!-- Core plugin JavaScript-->
-    <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+    {% comment %} <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script> {% endcomment %}
 
     <!-- custom javascript -->
     <script>
       const loader = document.getElementById("loader");
+      const path = document.querySelector("path")
 
+      if (typeof strokeColor !== "undefined") {
+        loader.style.display = "block";
+        path.style.stroke = "#842029"
+        setTimeout(() => {
+          loader.style.display = "none"; 
+          path.style.stroke = "green";
+        }, 5000);
+      }
+                
       function ECGLoader(){
         loader.style.display = "block";
         setTimeout(() => {loader.style.display = "none";}, 3000);

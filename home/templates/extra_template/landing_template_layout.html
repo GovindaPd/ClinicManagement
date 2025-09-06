@@ -1,0 +1,264 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Doctor-Patitent Login</title>
+
+    <!-- Custom fonts for this template-->
+    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    
+    <style>
+    /* Full page background */
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        {% comment %} background: linear-gradient(135deg, #6a11cb, #2575fc); /* Gradient bg */ {% endcomment %}
+        font-family: 'Poppins', sans-serif;
+        background-color: #72b9d6; 
+        background-image: url({% static 'img/home14.png' %}); 
+        background-size: contain; 
+        background-position: center; 
+        background-repeat: no-repeat;
+      }
+
+      .loader-overlay{
+        display: none;
+      }
+      
+      /* ECG floating overlay */
+      .ecg-container {
+        position: absolute;  /* take out of flex flow */
+        top: 10%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999; /* on top of everything */
+        pointer-events: none; /* so it won’t block clicks */
+      }
+      svg {
+        width: 400px;
+        height: 120px;
+      }
+      path {
+        stroke: green; /* #00ff99; */
+        stroke-width: 2.5;
+        fill: none;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: draw 2s linear infinite;
+      }
+      @keyframes draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      .login-card {
+        color: white;
+        overflow: hidden;
+        position: relative;
+        width: 400px;
+        height: 400px;
+        max-width: 400px;
+        max-height: 500px;
+        padding: 3rem 2rem;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        
+        display: flex;                /* enables flexbox */
+        flex-direction: column;       /* stack children vertically */
+        justify-content: center;      /* center vertically */
+        {% comment %}align-items: center;  {% endcomment %}
+      }
+
+    .login-card form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem; /* spacing between inputs */
+    }   
+    .login-card h2 {
+      margin-bottom: 1.5rem;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    .form-control {
+      border-radius: 10px;
+    }
+    .btn-custom {
+      border-radius: 10px;
+      color: white;
+      text-align: center;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .btn-custom:hover {
+      color: #586e9eff;
+    }
+
+    .form-check-label {
+      color: #f1f1f1;
+    }
+
+    input[type="number"], input[type="text"], input[type="password"], input[type="email"] {
+        text-align: center;
+        font-weight: bold;
+    }
+    .txw{
+      color:white;
+    }
+    .st{
+      color: #586e9eff;
+    }
+    .stb{
+        color: #586e9eff;
+        font-weight: bold;
+      }
+    
+    .stu{
+      color: #586e9eff;
+      text-decoration: underline;
+    }
+    .stbu{
+      color: #586e9eff;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+    a{
+      color:white;
+      font-weight: bold;
+      text-decoration:none;
+    }
+    a:hover{
+      color: #586e9eff;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+    .instruction{
+      color:white;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+    {% comment %} <body class="" style="background: url({% static 'img/home8.png' %}) repeat center center fixed; background-size: auto auto;"> {% endcomment %}
+    {% comment %} #e6f7ff, #008080, #e3f2fd , #004d40 {% endcomment %}       
+    <div class="login-card text-center">
+      <div class="main-card">
+        <div class="header-div mt-3">
+            <h2 class="h4 txw">Welcome Back!</h2>
+            {% if messages %}
+              {% for message in messages %}
+                {% if message.tags == 'error' %}
+                  <script> const strokeColor = true; </script>
+                  <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                  {% comment %} <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
+                  </div>
+                {% else %}
+                  <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert" style="border:none; background: none; font-weight: bold; padding:0;">{{ message }}
+                      {% comment %} <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button> {% endcomment %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            <p class="instruction"></p>
+        </div>
+        
+        <!-- login form -->
+        <form class="loginform" method='POST'>
+          {% csrf_token %}
+          <div class="mb-3">
+              <input type="text" class="form-control" name="username" aria-describedby="emailHelp" placeholder="username" required>
+          </div>
+          <div class="mb-2">
+              <input type="password" class="form-control form-control-user" name="password" placeholder="password" required>
+          </div>
+          <div class="form-check text-start mb-2">
+              <input class="form-check-input" type="checkbox" id="rememberMe">
+              <label class="form-check-label" for="rememberMe" style="color:white;">Remember me</label><!--Remember me for 30 days-->
+          </div>
+          <div class="mb-3">
+              <input type="submit" class="btn btn-custom w-100" value="Sign In" style="background: rgba(255, 255, 255, 0.15);">
+          </div>
+          {% comment %} <button type="submit" class="btn btn-custom w-100" style="background: rgba(255, 255, 255, 0.15);">Sign In</button> {% endcomment %}
+        </form>
+        <!-- end login form -->
+
+        <hr style="width:100%; color:white; background-color:white; height:1px;">
+        <a class="mt-3" href="{% url 'password_reset' %}" >Forget Password?</a>
+      
+        <!-- ECG liner -->
+        <div class="loader-overlay" id="loader">
+          <div class="ecg-container">
+            <svg viewBox="0 0 500 100">
+              <path d="M0 50 
+                      L50 50 L70 20 L90 80 L110 50 
+                      L160 50 L180 10 L200 90 L220 50
+                      L280 50 L300 30 L320 70 L340 50
+                      L400 50 L420 20 L440 80 L460 50
+                      L500 50" />
+            </svg>
+          </div>
+        </div>
+        <!-- end ECG liner -->
+
+      </div>
+    </div>
+        
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+
+    <!-- custom javascript -->
+    <script>
+      const loader = document.getElementById("loader");
+      const path = document.querySelector("path")
+
+      if (typeof strokeColor !== "undefined") {
+        loader.style.display = "block";
+        path.style.stroke = "#842029"
+        setTimeout(() => {
+          loader.style.display = "none"; 
+          path.style.stroke = "green";
+        }, 5000);
+      }
+                
+      function ECGLoader(){
+        loader.style.display = "block";
+        setTimeout(() => {loader.style.display = "none";}, 3000);
+      }
+      
+      document.querySelectorAll('input[type="number"], input[type="text"], input[type="password"], input[type="email"]').forEach(input => {
+        input.addEventListener("focus", () => {
+          loader.style.display = "block";
+        });
+        input.addEventListener("blur", () => {
+          loader.style.display = "none";
+        });
+      });
+    </script>
+     <!-- end custom javascript -->
+
+</body>
+</html>

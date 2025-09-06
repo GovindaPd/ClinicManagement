@@ -47,11 +47,33 @@ def get_url_name(full_url):
     else:
         return None
 
+
+def country_states(request):
+    state = Region.objects.filter(country=1).order_by('name')
+    serializer = RegionSerializers(state, many=True)
+    return JsonResponse({'region':serializer.data}, status=200)
+
+
+def state_cities(request, region=None):
+      if region:
+            # state = Region.objects.filter(id=state).first()
+            cities = City.objects.filter(region=region).order_by('name')#.only('id','name')
+            serializer = CitySerializers(cities, many=True)
+            return JsonResponse({'cities':serializer.data}, status=200)
+      else:
+          return JsonResponse({'cities':[]}, status=200)
+      
+
+@login_required(login_url='login')
+def index(request):
+    if request.method == 'GET':
+        return render(request, 'index.html')
+    
+
 #admin123
 @require_http_methods(["GET", "POST"])
 def login_in(request):
     """ login user """
-    
     if request.method == 'GET':
         return render(request, 'login.html')
     
@@ -152,7 +174,7 @@ def password_reset_confirm(request, uid64, token):
                 if password and len(password) >= 8 and len(password) <= 30:
                     user.set_password(password)
                     user.save()
-                    messages.success(request, "Password change successfully")
+                    messages.success(request, "Password changed successfully")
                     return redirect("login")
                 messages.error(request, "Invalid Password")
 
@@ -161,23 +183,6 @@ def password_reset_confirm(request, uid64, token):
         # if token comparission is failed
     messages.error(request, "Link has been expired")
     return redirect('password_reset')
-    
-
-# return render(request, 'otp_verification.html', {'user_id':user.custom_id})
-# return render(request, 'reset_password.html', {'token':token}) #confirm password page
-@require_http_methods(["GET"])
-def resend_otp(request, user_id):
-    user = get_object_or_404(User, custom_id=user_id)
-    if not user.otp:
-        messages.info(request, "Please provide your email.")
-        return render(request, 'login.html')
-    
-    otp = generate_otp()
-    user.otp = otp
-    user.save()
-    send_mail('Password forget request OTP', f'Your forget password OTP is {otp}',[user.eamil], fail_silently=False)
-    return render(request, 'otp_verification.html', {'user_id':user.custom_id})
-
 
 
 @require_http_methods(["GET", "POST"])
@@ -192,21 +197,16 @@ def change_user_password(request):
 
         user = get_object_or_404(User, username=request.user.username)
         if user.check_password(old_password):
-            if password and (len(password) >= 6 and len(password) <= 20):
+            if password and (len(password) >= 8 and len(password) <= 30):
                 user.set_password(password)
                 user.save()
-                messages.success(request, 'Password update successfully.')
+                messages.success(request, 'Password updated successfully.')
             else:
                 messages.warning(request, "Password not changed. Please enter valid new password.")
         else:
-            messages.error(request, "Password does not match.")
+            messages.error(request, "Old Password does not match.")
         return redirect('change_user_password')
 
-
-@login_required(login_url='login')
-def index(request):
-    if request.method == 'GET':
-        return render(request, 'index.html')
 
 
 @login_required(login_url='login')
@@ -225,133 +225,130 @@ def all_users(request):
     return HttpResponseBadRequest()
 
 
-@login_required(login_url='login')
-def check_unique(request):
-    if request.method == 'GET':
-        field = request.GET.get('field')
-        value = request.GET.get('value')
-        if field == 'email':
-            exists = User.objects.filter(email=value).exists()
-            
-        elif field == 'username':
-            exists = User.objects.filter(username=value).exists()
-        else:
-            exists = None
-
-        if exists != None:
-            message = f"{field} is not available" if exists == True else f"{field} is available"
-        else:
-            message = None
-        return JsonResponse({'exists':exists, 'message':message})
-    return HttpResponseBadRequest()
-
-
-
+@require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
 def add_user(request):
     if not any([request.user.is_superuser, request.user.is_admin]):
-        return HttpResponseForbidden(f"{request.user.is_superuser=} or {request.user.is_admin=}:")
+        message = """You do not have permission to access this resource.
+
+        Please check that you have the correct credentials or contact the site administrator if you believe this is an error."""
+        return HttpResponseForbidden(message)
     
     if request.method == 'GET':
         if request.user.is_superuser:
             clinics = Clinic.objects.all().values_list('id','name')
         elif request.user.is_admin:
             if not request.user.clinic:
-                messages.error(request, "You have not fill your clinic details yet.")
+                messages.error(request, "You do not have registerd clinic details")
                 return redirect('all_users')
-            clinics = Clinic.objects.filter(id = request.user.clinic.id).values_list('id','name')
+            clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
         return render(request, 'add_user.html', {'clinics':clinics})
     
-    elif request.method == 'POST':
-        username = request.POST.get('username')
+    if request.method == 'POST':
+        is_admin = False
+        is_staff = False
+        is_admin_staff = False
+        default_password = "temp@1234"
+
         email = request.POST.get('email')
+        username = request.POST.get('username')
         first_name = request.POST.get('first_name','')
         last_name = request.POST.get('last_name','')
         user_type = request.POST.get('user_type','')
         clinic = request.POST.get('clinic', None)
         
         if clinic:
-            xyz = Clinic.objects.filter(id=clinic)
-            if xyz.exists():
-                clinic = xyz.first()
+            cl = Clinic.objects.filter(id=clinic)
+            if cl.exists():
+                clinic = cl.first()
                 clinic_exists = True
         else:
             clinic = None
             clinic_exists = False
-
+        # superuser setting
         if request.user.is_superuser:
             if user_type == 'admin':
                 is_admin = True
-                is_new_staff = False
-            elif user_type == 'is_new_staff':
-                is_admin = False
-                is_new_staff = True
-                
-                if not clinic and not clinic_exists:
+            elif user_type == 'is_admin_staff':
+                is_admin_staff = True
+                if not clinic_exists:
                     messages.error(request, "You do not have selected any clinic.")
                     return redirect('all_users')
+            elif user_type=="is_staff":
+                is_staff = True
             else:
                 messages.error("user type is not defined")
                 return redirect('all_users')
-        else:
-            is_admin = False
-            is_new_staff = True
-            if not clinic and not clinic_exists:
+        
+        #admin settings
+        elif request.user.is_admin:
+            is_admin_staff = True
+            if not clinic_exists:
                 messages.error(request, "You do not have selected any clinic.") 
                 return redirect('all_users')
+        else:
+            messages.error(request, "You do not have permission to add staff.")
+            return redirect('all_users')
 
         try:
-            user = User.objects.create(
+            user = User.objects.create_user(
                 username    = username,
                 email       = email,
                 first_name  = first_name,
                 last_name   = last_name,
+                clinic      = clinic,
+                password    = default_password,
                 is_admin    = is_admin,
-                is_new_staff = is_new_staff,
-                clinic       = clinic
+                is_staff    = is_staff,
+                is_admin_staff= is_admin_staff
             )
-            default_password = "temp1234"
-            user.set_password(default_password)
-            user.save()
-            
-            from_user   = request.user.username,
-            to          = username,
-           
-            # if user.is_admin:
-            #      message = f"""Dear {username}
-            # Congratulations! Your account, has been successfully added to our system. 🚀Now you can start managing patient records, appointments, and more—all in one place!
-            # 📌Need help getting started? Check out our [Help Center] or reach out to our support team anytime.
-            # Thank you for trusting {settings.WEBSITE_NAME} to streamline your clinic management! 💙"""
-            # elif user.is_new_staff:
-            #     message = f"Welcome to {clinic.name}! We’re excited to have you on board and look forward to the amazing impact you’ll bring to our team and patients. 
-            #     Wishing you success in this new journey! ✨"
-            # noti = Notifications.objects.create(
-            #         from_user = from_user,
-            #         to        = to,
-            #         message   = message                             
-            # )
-            messages.success(request, f"New account has been created successfully {username=} and {default_password=}")
-
-            send_mail(
-                subject = f"New accounted on created on {settings.WEBSITE_NAME}",
-                message = f"your username is {username} and temporary password is {default_password}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email,],
-                fail_silently=False
-            )
-            
         except IntegrityError as e:
-             messages.error(request, "Error within form data.")
+            messages.error(request, "Error with form data insertion.")
+            return redirect('add_user')
         except ValidationError as ve:
-            messages.error(request, "Error within form data validation.")
+            messages.error(request, "Error with form data validation.")
+            return redirect('add_user')
         except OperationalError:
-            messages.error(request, "Database server being down or unreachable.")
+            messages.error(request, "Database server being down or unreachable. Please try again later.")
+            return redirect('add_user')
         except ValueError:
-            messages.error(request, "Value error.")
-        
-        return redirect('all_users')
-    return HttpResponseBadRequest()
-
+            messages.error(request, "Form values are required.")
+            return redirect('add_user')
+       
+        if request.user.is_superuser:
+            if user.is_admin:
+                send_mail(
+                    admin_welcome_subject,
+                    admin_welcome_mail.format(username, company_name, company_name),
+                    settings.DEFAULT_FROM_EMAIL, 
+                    [email], 
+                    fail_silently=True
+                )
+            elif user.is_admin_staff:
+                send_mail(
+                    admin_staff_welcome_subject.format(clinic.name),
+                    admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
+                    settings.DEFAULT_FROM_EMAIL, 
+                    [email], 
+                    fail_silently=True
+                )
+        elif request.user.is_admin:
+            send_mail(
+                admin_staff_welcome_subject.format(clinic.name),
+                admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
+                settings.DEFAULT_FROM_EMAIL, 
+                [email], 
+                fail_silently=True
+            )
+        messages.success(request, f"{user.username} account has been created successfully. Default password is {default_password!r}")
+        return redirect('all_users')  
+        # message = f"Welcome to {clinic.name}! We’re excited to have you on board and look forward to the amazing impact you’ll bring to our team and patients. 
+        # Wishing you success in this new journey! ✨"
+        #     noti = Notifications.objects.create(
+        #     from_user = from_user,
+        #     to        = to,
+        #     message   = message                             
+        # )   
 
 
 @login_required(login_url='login')
@@ -472,25 +469,7 @@ def clinic(request):
         except Exception as error:
             messages.error(request, 'Error with form data.')
         
-        return redirect('home')
-
-
-
-def country_states(request):
-    state = Region.objects.filter(country=1).order_by('name')
-    serializer = RegionSerializers(state, many=True)
-    return JsonResponse({'region':serializer.data}, status=200)
-
-
-def state_cities(request, region=None):
-      if region:
-            # state = Region.objects.filter(id=state).first()
-            cities = City.objects.filter(region=region).order_by('name')#.only('id','name')
-            serializer = CitySerializers(cities, many=True)
-            return JsonResponse({'cities':serializer.data}, status=200)
-      else:
-          return JsonResponse({'cities':[]}, status=200)
-    
+        return redirect('home')   
 
 
 @login_required(login_url='login')
@@ -781,7 +760,6 @@ def edit_patient_visit(request, patient_id, visit_id):
         return redirect('patient_details', patient_id=patient_id)
     
 
-
 @login_required(login_url='login')
 def delete_patient_visit(request, patient_id, visit_id):
     if request.method == 'GET':
@@ -802,8 +780,28 @@ def delete_patient_visit(request, patient_id, visit_id):
     return HttpResponseBadRequest()
 
 
+@login_required(login_url='login')
+def check_unique(request):
+    if request.method == 'GET':
+        field = request.GET.get('field')
+        value = request.GET.get('value')
+        if field == 'email':
+            exists = User.objects.filter(email=value).exists()
+            
+        elif field == 'username':
+            exists = User.objects.filter(username=value).exists()
+        else:
+            exists = None
+
+        if exists != None:
+            message = f"{field} is not available" if exists == True else f"{field} is available"
+        else:
+            message = None
+        return JsonResponse({'exists':exists, 'message':message})
+    return HttpResponseBadRequest()
+
 
 # ROUGHT
 def rough(request):
     if request.method == 'GET':
-        return render(request, 'hekathon.html')#'chess.html'
+        return render(request, 'extra_template/hekathon.html')#'chess.html'

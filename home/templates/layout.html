@@ -39,6 +39,39 @@
         .action-links i{
             color: rgba(33, 92, 120, 1);
         }
+        .box-background-dark{
+            background-color: rgba(33, 92, 120, 1)!important;
+        }
+        .box-background-light{
+            background-color: #d8e8ec; 
+        }
+        .box-background-white{
+            background-color: white;
+        }
+        .custome-color-dark{
+            color: rgba(33, 92, 120, 1);
+        }
+        .custome-color-slaty{
+            color: #858796;
+        }
+        
+        .custome-color-white{
+            color: white;
+        }
+        .box-background-border-dark{
+            background-color: rgba(33, 92, 120, 1)!important;
+            border: 1px solid rgba(33, 92, 120, 1)!important;
+        }
+        /* a {
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.3s ease, font-size 0.3s ease;
+        }
+        a:hover {
+            transform: scale(1.2); 
+            color: #007bff;
+        } */
     </style>
     {% block staticblock %}
     {% endblock %}
@@ -50,7 +83,7 @@
     <div id="wrapper">
 
         <!-- Sidebar -->
-        <ul class="navbar-nav sidebar sidebar-dark accordion" id="accordionSidebar" style="background: rgba(33, 92, 120, 1)">
+        <ul class="navbar-nav sidebar sidebar-dark box-background-dark" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
             {% comment %} <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
@@ -74,9 +107,11 @@
             <hr class="sidebar-divider">
 
             <!-- Heading -->
+            {% comment %}             
             <div class="sidebar-heading">
                 Interface
-            </div>
+            </div> 
+            {% endcomment %}
 
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
@@ -199,11 +234,11 @@
             <div id="content" style="background: #d8e8ec">
 
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light topbar mb-4 static-top shadow" style="background: rgba(33, 92, 120, 1);">
+                <nav class="navbar navbar-expand topbar mb-4 static-top shadow">
 
                     <!-- Sidebar Toggle (Topbar) -->
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fa fa-bars"></i>
+                        <i class="fa fa-bars custome-color-dark"></i>
                     </button>
 
                     <!-- Topbar Search -->
@@ -213,8 +248,8 @@
                             <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
                                 aria-label="Search" aria-describedby="basic-addon2">
                             <div class="input-group-append">
-                                <button class="btn btn-primary" type="button">
-                                    <i class="fas fa-search fa-sm"></i>
+                                <button class="btn box-background-dark" type="button">
+                                    <i class="fas fa-search fa-sm custome-color-white"></i>
                                 </button>
                             </div>
                         </div>
@@ -235,8 +270,7 @@
                                 <form class="form-inline mr-auto w-100 navbar-search">
                                     <div class="input-group">
                                         <input type="text" class="form-control bg-light border-0 small"
-                                            placeholder="Search for..." aria-label="Search"
-                                            aria-describedby="basic-addon2">
+                                            placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2">
                                         <div class="input-group-append">
                                             <button class="btn btn-primary" type="button">
                                                 <i class="fas fa-search fa-sm"></i>
@@ -248,17 +282,17 @@
                         </li>
 
                         <!-- Nav Item - Alerts -->
-                        <li class="nav-item dropdown no-arrow mx-1">
+                        <li class="nav-item dropdown no-arrow mx-1 ">
                             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-bell fa-fw"></i>
+                                <i class="fas fa-bell fa-fw custome-color-dark"></i>
                                 <!-- Counter - Alerts -->
                                 <span class="badge badge-danger badge-counter">3+</span>
                             </a>
                             <!-- Dropdown - Alerts -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header">
+                                <h6 class="dropdown-header box-background-border-dark">
                                     Alerts Center
                                 </h6>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
@@ -302,14 +336,14 @@
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-envelope fa-fw"></i>
+                                <i class="fas fa-envelope fa-fw custome-color-dark"></i>
                                 <!-- Counter - Messages -->
                                 <span class="badge badge-danger badge-counter">7</span>
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="messagesDropdown">
-                                <h6 class="dropdown-header">
+                                <h6 class="dropdown-header box-background-border-dark">
                                     Message Center
                                 </h6>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
@@ -370,12 +404,14 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ request.user.username }}</span>
+                                {% comment %} <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ request.user.username }}</span> {% endcomment %}
                                 {% if request.user.profile_img %}
-                                <img class="img-profile rounded-circle"
-                                    src="{{request.user.profile_img.url}}" alt="profile image">
+                                    <img class="img-profile rounded-circle box-background-border-dark"
+                                        src="{{request.user.profile_img.url}}" alt="profile image" title="{{request.user.username}}">
                                 {% else %}
-                                <div class="img-profile rounded-circle" style="text-align: center; font-size: larger; font-weight: bold; background:green;">{{ request.user.username|get_first_letter|upper }}</div>
+                                    <div class="img-profile rounded-circle" style="text-align: center; font-size: larger; font-weight: bold; background:green;">
+                                        {{ request.user.username|get_first_letter|upper }}
+                                    </div>
                                 {% endif %}
                             </a>
                             <!-- Dropdown - User Information -->
@@ -425,9 +461,7 @@
                       {% endfor %}
                     {% endif %}
 
-                    {% block content %}
-                        {% comment %} your content here {% endcomment %}
-                    {% endblock %}
+                    {% block content %}{% comment %} your content here {% endcomment %}{% endblock %}
                 </div>
                 <!-- /.container-fluid -->
 
@@ -435,9 +469,9 @@
             <!-- End of Main Content -->
 
             <!-- Footer -->
-            <footer class="sticky-footer" style="background: rgba(33, 92, 120, 1);">
+            <footer class="sticky-footer box-background-light shadow">
                 <div class="container my-auto">
-                    <div class="copyright text-center my-auto" style="color: white;">
+                    <div class="copyright text-center my-auto custome-color-dark" style="">
                         <span>Copyright &copy; Your Website 2021</span>
                     </div>
                 </div>

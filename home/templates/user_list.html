@@ -1,9 +1,9 @@
 {% extends 'layout.html' %}
             {% block content %}
                 <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0">Clinic Doctors</h2>
-                    <a href="{% url 'add_user' %}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add New Doctor
+                    <h2 class="mb-0 custome-color-dark">Admin Staffs</h2>
+                    <a href="{% url 'add_user' %}" class="btn box-background-dark custome-color-white" style="font-weight:bold;">
+                        <i class="fas fa-plus"></i> Add Doctor
                     </a>
                 </div>
                 <hr>
@@ -12,10 +12,10 @@
                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto; position: relative;">
                   <table class="table table-bordered">
                     
-                   <thead class="table-dark" style="position: sticky; top: 0; z-index: 500;">
+                   <thead class="box-background-dark custome-color-white" style="position: sticky; top: 0; z-index: 500;">
                     <tr>
                         <th scope="col">S.no.</th>
-                        <th scope="col">Id</th>
+                        {% comment %} <th scope="col">Id</th> {% endcomment %}
                         <th scope="col">Username</th>
                         <th scope="col">First Name</th>
                         <th scope="col">Last Name</th>
@@ -23,15 +23,15 @@
                         <th scope="col">Join Date</th>
                         <th scope="col">Clinic</th>
                         <th scope="col">Status</th>
-                        <th scope="col">View\Edit</th>
+                        <th scope="col">Action</th><!-- View/Edit-->
                     </tr>
                    </thead>
                    <tbody>
                    {% if users %}
                     {% for user in users %}
-                    <tr>
+                    <tr class="custome-color-dark">
                         <td>{{forloop.counter}}</td>
-                        <td>{{user.custom_id}}</td>
+                        {% comment %} <td>{{user.custom_id}}</td> {% endcomment %}
                         <td>{{user.username}}</td>
                         {% comment %} <td>{% if patient.blood_group %}{{patient.blood_group}}{% endif %}</td>
                         <td>{% if patient.age %}{{patient.age}}{% endif %}</td> {% endcomment %}
@@ -44,7 +44,7 @@
                             <form class="user_activation_form" method="POST" action="{% url 'update_user_status' %}">
                             {% csrf_token %}
                             <input type="hidden" name="user_id" value="{{user.custom_id}}">
-                            <select class="form-control bg-primary text-light" name="status" onchange="this.form.submit()">
+                            <select class="form-control box-background-dark text-light" name="status" onchange="this.form.submit()">
                                 <option value="1" {% if user.is_active %}selected{% endif %}>Active</option>
                                 <option value="0" {% if not user.is_active %}selected{% endif %}>Deactive</option>
                             </select>

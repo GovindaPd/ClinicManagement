@@ -4,11 +4,11 @@ _pycache_
 .DS_Store
 *.DS_Store
 *migrations/
-*.sqlite3
+# *.sqlite3
 debug-error.log
 home/google/credentials.json
 *media/
-static/
+# static/
 nohup.out
 .vscode/
 db.json
