@@ -73,6 +73,7 @@ class User(AbstractUser):
     is_admin_staff  = models.BooleanField(default=False)    # clinic staff
     is_password_reset=models.BooleanField(default=False)
     is_active       = models.BooleanField(default=True)
+    updated_at      = models.DateTimeField(auto_now=True)
     objects         = CustomUserManager()
 
     @property
@@ -86,8 +87,7 @@ class User(AbstractUser):
         elif self.is_admin_staff:
             return "admin_staff"
         else:
-            return "undefined"
-        
+            return "undefined"   
         
     @staticmethod
     def generate_custom_id(max_attempts=10):
@@ -105,6 +105,7 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username}"
     
+
 
 class Clinic(models.Model):
     name    = models.CharField(max_length=255, help_text="Clinic Name", blank=False, null=False)

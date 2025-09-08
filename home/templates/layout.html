@@ -39,6 +39,12 @@
         .action-links i{
             color: rgba(33, 92, 120, 1);
         }
+        .action-links i:hover{
+            color: white;
+        }
+        a.action-link:hover{
+            text-decoration:none;
+        }
         .box-background-dark{
             background-color: rgba(33, 92, 120, 1)!important;
         }
@@ -72,6 +78,27 @@
             transform: scale(1.2); 
             color: #007bff;
         } */
+        .custome-btn{
+
+        }
+        .user-face{
+            text-align: center;
+            font-size: larger;
+            font-weight: bold; 
+            background-color: rgba(33, 92, 120, 1)!important;
+            border: 1px solid rgba(33, 92, 120, 1)!important;
+            color: white;
+        }
+        /* table border color*/
+        .table.table-bordered {
+            border: 2px solid rgba(33, 92, 120, 1)!important;
+        }
+        .table.table-bordered th, .table.table-bordered td {
+            text-align:center;
+            border: 1px solid rgba(33, 92, 120, 1)!important;
+        }
+        /* end table border color*/
+
     </style>
     {% block staticblock %}
     {% endblock %}
@@ -121,7 +148,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="javascript:void(0)" data-toggle="modal" data-target="#ClinicModal" aria-expanded="true">
+                <a class="nav-link" href="{% url 'clinic' %}" aria-expanded="true"><!-- data-toggle="modal" data-target="#ClinicModal" aria-expanded="true"> -->
                     <i class="fas fas fa-fw fa-cog"></i>
                     Clinic Details
                 </a>
@@ -409,7 +436,7 @@
                                     <img class="img-profile rounded-circle box-background-border-dark"
                                         src="{{request.user.profile_img.url}}" alt="profile image" title="{{request.user.username}}">
                                 {% else %}
-                                    <div class="img-profile rounded-circle" style="text-align: center; font-size: larger; font-weight: bold; background:green;">
+                                    <div class="img-profile rounded-circle user-face" title="{{request.user.username}}">
                                         {{ request.user.username|get_first_letter|upper }}
                                     </div>
                                 {% endif %}
@@ -461,7 +488,7 @@
                       {% endfor %}
                     {% endif %}
 
-                    {% block content %}{% comment %} your content here {% endcomment %}{% endblock %}
+                    {% block content %}<!-- your content here-->{% endblock %}
                 </div>
                 <!-- /.container-fluid -->
 
@@ -510,8 +537,28 @@
     </div>
     <!-- end Logout Modal-->
 
+    <!-- Bootstrap core JavaScript-->
+    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
-    <!-- clinic details model -->
+    <!-- Core plugin JavaScript-->
+    <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+    <!-- Page level plugins -->
+    <script src="{% static 'vendor/chart.js/Chart.min.js' %}"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="{% static 'js/demo/chart-area-demo.js' %}"></script>
+    <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script>
+
+</body>
+</html>
+
+<!-- clinic details model -->
+    <!--
     <div class="modal fade" role="dialog" tabindex="-2" id="ClinicModal">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -536,7 +583,7 @@
                                   {% endif %}
                               </select>
                               {% comment %} <input type="text" class="form-control" name="state" placeholder="State Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled> {% endcomment %}
-                          </div>
+                            </div>
                         </div>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col"><label class="form-label">City Name</label>
@@ -582,7 +629,7 @@
                             </div>
                         </div>
                         
-                      </div>
+                    </div>
                     
                     {% if request.user.is_admin %}
                     <div class="modal-footer">
@@ -593,10 +640,11 @@
               </form>
             </div>
         </div>
-    </div>
+    </div> -->
     <!-- end Clinic details model -->
     
     <!-- Clinic details model and form javascript -->
+    <!--
     <script>
         /* make clinic form editable */
         document.getElementById('edit_clinic_detatils').addEventListener('click', function () {
@@ -658,28 +706,5 @@
             });
         });
     </script>
+    -->
     <!-- end Clinic details model and form javascript -->
-
-
-
-
-    <!-- Bootstrap core JavaScript-->
-    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
-    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-
-    <!-- Core plugin JavaScript-->
-    <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
-
-    <!-- Custom scripts for all pages-->
-    <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
-
-    <!-- Page level plugins -->
-    <script src="{% static 'vendor/chart.js/Chart.min.js' %}"></script>
-
-    <!-- Page level custom scripts -->
-    <script src="{% static 'js/demo/chart-area-demo.js' %}"></script>
-    <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script>
-
-</body>
-
-</html>

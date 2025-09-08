@@ -421,27 +421,33 @@ def profile(request):
     return render(request, 'profile.html')
 
 
-
+@require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
 def clinic(request):
+    if request.method == 'GET':
+        return render(request, 'clinic.html')
+    
     if request.method == 'POST':
         if not request.user.is_admin:
             return HttpResponseForbidden()
-        name        = request.POST.get('name')
-        state       = request.POST.get('state')
-        city        = request.POST.get('city')
-        pincode     = request.POST.get('pincode')
-        address     = request.POST.get('address')
-        email       = request.POST.get('email')
-        number      = request.POST.get('number')
-        specializations = request.POST.get('specializations')
+        
+        name        = request.POST.get('name', '')
+        state       = request.POST.get('state', '')
+        city        = request.POST.get('city', '')
+        pincode     = request.POST.get('pincode', '')
+        address     = request.POST.get('address', '')
+        email       = request.POST.get('email', '')
+        number      = request.POST.get('number' '')
+        specializations = request.POST.get('specializations', '')
 
         if state:
             state = get_object_or_404(Region, id=state)
         if city:
             city = get_object_or_404(City, region=state, id=city)
 
-        clinic = Clinic.objects.filter(user=request.user).first()
+        if request.user.is_admin:
+            user = request.user
+            clinic = Clinic.objects.filter(id=request.user.clinic_id).first()
         try:
             if clinic:
                 clinic.name     = name
@@ -455,40 +461,43 @@ def clinic(request):
                 clinic.save()
             else:
                 clinic = Clinic.objects.create(
-                        user     = request.user,
-                        name     = name,
-                        state    = state,
-                        city     = city,
-                        pincode  = pincode,
-                        address  = address,
-                        email    = email,
-                        number   = number,
-                        specializations = specializations
-                    )
+                    name     = name,
+                    state    = state,
+                    city     = city,
+                    pincode  = pincode,
+                    address  = address,
+                    email    = email,
+                    number   = number,
+                    specializations = specializations
+                )
+                user.clinic = clinic
+                user.save()
+                
             messages.success(request, 'Clinic details updated successfully.')
         except Exception as error:
             messages.error(request, 'Error with form data.')
-        
         return redirect('home')   
 
 
 @login_required(login_url='login')
 def patients(request):
     if request.method == 'GET':
-        if request.user.is_admin or request.user.is_superuser:
-            clinic = Clinic.objects.filter(user=request.user).first()
-
+        if request.user.is_admin:
+            clinic = Clinic.objects.filter(id=request.user.clinic_id).first()
             if not clinic:
                 clinic      = Clinic.objects.none()
                 patients    = Patient.objects.none()
             else:
                 patients = Patient.objects.filter(clinic=clinic).order_by('-created_at')
+        elif request.user.is_superuser:
+            clinic = Clinic.objects.all()
+            patients = Patient.objects.all()
 
-            context = {
-                'clinic': clinic,
-                'patients': patients,
-            }
-            return render(request, 'patitens_list.html', context)
+        context = {
+            'clinic': clinic,
+            'patients': patients,
+        }
+        return render(request, 'patitens_list.html', context)
     return HttpResponseBadRequest()
 
 

@@ -1,0 +1,147 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0 custome-color-dark">Clinic Details</h2>
+    </div>
+    <hr>
+
+    <div class="justify-content-center">
+        <form method="POST" class="clinic_form">
+            {% csrf_token %}
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-6">
+                    <label class="form-label">Clinic Name</label>
+                    <input type="text" class="form-control" name="name" placeholder="Clinic Name" style="width: 100%;" maxlength="50"
+                        {% if request.user.clinic.name %}value="{{request.user.clinic.name}}"{% endif %} oninput="validateInput(this)" required disabled>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-6">
+                    <label class="form-label">State Name</label>
+                    <select id="clinic_state" class="form-control" name="state" style="width: 100%;" required disabled>
+                        {% if request.user.clinic.state %}
+                        <option value="{{request.user.clinic.state.id}}" selected>{{request.user.clinic.state.name}}</options>
+                        {% else %}
+                        <option value="">Select a state</option>
+                        {% endif %}
+                    </select>
+                    {% comment %} <input type="text" class="form-control" name="state" placeholder="State Name" style="width: 100%;" maxlength="25" oninput="validateInput(this)" required disabled> {% endcomment %}
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">City Name</label>
+                    <select id="clinic_city" class="form-control" name="city" style="width: 100%;" required disabled>
+                        {% if request.user.clinic.city %}
+                        <option value="{{request.user.clinic.city.id}}" selected>{{request.user.clinic.city.name}}</options>
+                        {% else %}
+                        <option value="">Select a city</option>
+                        {% endif %}
+                    </select>
+                    {% comment %} <input type="text" class="form-control" name="city" placeholder="City Name" style="width: 100%;"  oninput="validateInput(this)" required disabled> {% endcomment %}
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-6">
+                    <label class="form-label">Address</label>
+                    <input type="text" class="form-control" name="address" placeholder="Address" style="width: 100%;" 
+                    maxlength="150" {% if request.user.clinic.address %}value="{{request.user.clinic.address}}"{% endif %} oninput="validateInput(this)" required disabled>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Pincode</label>
+                    <input type="number" class="form-control" name="pincode" placeholder="XXXXXX" style="width: 100%;" 
+                    min="100000" max="999999" {% if request.user.clinic.pincode %}value="{{request.user.clinic.pincode}}"{% endif %}oninput="validateInput(this)" required disabled>
+                </div>
+                {% comment %} <div class="col"><label class="form-label">Profile Image</label>
+                    <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" accept="image/png, image/jpeg" required onchange="validateFileSize(event)">
+                </div> {% endcomment %}
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" placeholder="example@gmail.com" style="width: 100%;" 
+                    maxlength="50" {% if request.user.clinic.email %}value="{{request.user.clinic.email}}"{% endif %} oninput="validateInput(this)" required disabled>
+                </div>
+                <div class="col-sm-6"><label class="form-label">Number</label>
+                    <input type="number" class="form-control" name="number" placeholder="XXXXXXXXXX" style="width: 100%;" 
+                    min="1000000000" max="9999999999" {% if request.user.clinic.number %}value="{{request.user.clinic.number}}"{% endif %} oninput="validateInput(this)" required disabled>
+                </div>                                            
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-6">
+                    <label class="form-label">Specialization</label>
+                    <textarea name="specializations" class="form-control" placeholder="" style="width: 100%; resize:none;" 
+                        oninput="validateInput(this)" rows="4" required disabled>{% if request.user.clinic.specializations %}{{request.user.clinic.specializations}}{% endif %}</textarea>
+                </div>
+            </div>
+            
+            {% if request.user.is_admin %}
+                <button class="btn btn-primary box-background-border-dark" name="edit_clinic_details" type="button" style="margin-top: 20px;s width:10rem;">Edit</button>
+                <button class="btn btn-primary box-background-border-dark" name="submit_clinic_details" type="submit" style="margin-top: 20px; width: 10rem; display:none; ">Save</button>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Clinic details model and form javascript -->
+    <script>
+        /* make clinic form editable */
+        document.getElementsByName('edit_clinic_details')[0].addEventListener('click', function () {
+            const formFields = document.querySelectorAll('.clinic_form input, .clinic_form select, .clinic_form textarea');
+            
+            formFields.forEach(field => {
+                if ( field.type != 'hidden'){
+                    field.disabled = !field.disabled;
+                }
+            });
+            document.getElementsByName('submit_clinic_details')[0].style.display = 'block';
+            this.style.display = 'none';
+        });
+        
+        /* selecet field javascript*/
+        document.addEventListener("DOMContentLoaded", () => {
+            const stateSelect = document.getElementById('clinic_state');
+            const citySelect = document.getElementById('clinic_city');
+            
+            // Fetch states when the page loads or state field is clicked
+            stateSelect.addEventListener('click', () => {
+                if (stateSelect.options.length > 1) return; // Prevent multiple fetches
+                fetch("{% url 'country_states' %}") 
+                    .then(response => response.json())
+                    .then(states => {
+                        // Populate state options
+                        states['region'].forEach(state => {
+                            const option = document.createElement('option');
+                            option.value = state.id;
+                            option.textContent = state.name;
+                            stateSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching states:', error));
+            });
+        
+            // Fetch cities based on selected state
+            stateSelect.addEventListener('change', () => {
+                const stateId = stateSelect.value;
+                citySelect.innerHTML = '<option value="">Select a city</option>'; // Reset city options
+                if (!stateId) {
+                    citySelect.disabled = true;
+                    return;
+                }
+                
+                fetch(`/state-cities/${stateId}`)
+                    .then(response => response.json())
+                    .then(cities => {
+                        // Populate city options
+                        cities['cities'].forEach(city => {
+                            const option = document.createElement('option');
+                            option.value = city.id;
+                            option.textContent = city.name;
+                            citySelect.appendChild(option);
+                        });
+                        citySelect.disabled = false;
+                    })
+                    .catch(error => console.error('Error fetching cities:', error));
+            });
+        });
+    </script>
+    <!-- end Clinic details model and form javascript -->
+
+{% endblock content %}

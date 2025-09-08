@@ -9,7 +9,7 @@
                 <hr>
 
 
-                <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto; position: relative;">
+                <div class="table-responsive" style="max-height: 550px; overflow-y: auto; overflow-x: auto; position: relative;">
                   <table class="table table-bordered">
                     
                    <thead class="box-background-dark custome-color-white" style="position: sticky; top: 0; z-index: 500;">
@@ -30,7 +30,7 @@
                    {% if users %}
                     {% for user in users %}
                     <tr class="custome-color-dark">
-                        <td>{{forloop.counter}}</td>
+                        <td>{{forloop.counter}}.</td>
                         {% comment %} <td>{{user.custom_id}}</td> {% endcomment %}
                         <td>{{user.username}}</td>
                         {% comment %} <td>{% if patient.blood_group %}{{patient.blood_group}}{% endif %}</td>
@@ -54,7 +54,7 @@
                           <a class="btn btn-primary" href="{% url 'patient_details' patient_id=patient.id %}">View</a>
                         </td> {% endcomment %}
                         <td>
-                          <a class="btn btn-primary" href="{% url 'edit_patient' patient_id=1  %}">View/Edit</a>
+                          <a class="btn btn-primary box-background-dark" href="{% url 'edit_patient' patient_id=1  %}">View/Edit</a>
                         </td>
                     </tr>
                     {% endfor %}
