@@ -350,9 +350,12 @@ def add_user(request):
         #     message   = message                             
         # )   
 
-
+@require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
-def edit_user(request):
+def edit_user(request, user_id):
+    if request.method == "GET":
+        return render(request, 'edit_user.html')
+    
     if not any([request.user.is_superuser, request.user.is_admin]):
         return HttpResponseForbidden(f"{request.user.is_superuser=} or {request.user.is_admin=}")
 # if clinics:
@@ -363,10 +366,13 @@ def update_user_status(request):
     if request.method == 'POST':
         custom_id = request.POST.get('user_id')
         try:
-            status    = int(request.POST.get('status',''))
+            status = int(request.POST.get('status',''))
+            if not (status == 0 or status == 1):
+                raise ValueError("Value must be 0 or 1")
         except ValueError:
             return HttpResponseBadRequest()
-        active,msg = (True, "{} account activated successfully.") if status else (False, "{} account deactivated successfully.")
+        
+        active,msg = (True, "'{}' account activated successfully.") if status else (False, "'{}' account deactivated successfully.")
 
         if request.user.is_superuser:
             users = User.objects.filter(custom_id=custom_id)
@@ -376,18 +382,17 @@ def update_user_status(request):
                 user.save()
                 messages.info(request, msg.format(user.username))
             else:
-                messages.error(request, "There is no user with given id.")
-            
+                messages.error(request, "User not found with given id.")  
         elif request.user.is_admin:
-            if request.user.clininc:
-                users = User.objects.filter(custom_id=custom_id, clinic=request.user.clininc)
+            if request.user.clinic:
+                users = User.objects.filter(custom_id=custom_id, clinic=request.user.clinic_id)
                 if users.exists():
                     user = users.last()
                     user.is_active = active
                     user.save()
                     messages.info(request, msg.format(user.username))
                 else:
-                     messages.error(request, "There is no user with given id.") 
+                     messages.error(request, "User not found with given id.") 
             else:
                 messages.error(request, "You do not have fill clinic details yet.") 
         else:
@@ -396,11 +401,10 @@ def update_user_status(request):
     return HttpResponseBadRequest()          
 
 
-
 @login_required(login_url='login')
 def profile(request):
     if request.method == 'POST':
-        first_name = request.POST.get('first_name')
+        first_name = request.POST.get('first_name',)
         last_name = request.POST.get('last_name')
 
         user = User.objects.get(username=request.user.username)
@@ -415,10 +419,10 @@ def profile(request):
             user.profile_img = profile_img
 
         user.save()
-        messages.success(request, 'Profile updated successfully.')
+        messages.success(request, f'{user.username} Profile updated successfully.')
         return redirect('profile')
 
-    return render(request, 'profile.html')
+    return render(request, 'profile.html', {'search_bar':False})
 
 
 @require_http_methods(["GET", "POST"])
@@ -476,7 +480,7 @@ def clinic(request):
             messages.success(request, 'Clinic details updated successfully.')
         except Exception as error:
             messages.error(request, 'Error with form data.')
-        return redirect('home')   
+        return redirect('clinic')   
 
 
 @login_required(login_url='login')
@@ -512,7 +516,7 @@ def add_new_patient(request):
         
         if request.method == 'POST':
             doctor      = request.user
-            clinic      = Clinic.objects.filter(user=doctor).first()
+            clinic      = request.user.clinic
             
             if not clinic:
                 messages.error(request, "You are not joined to any clinic.")
@@ -543,9 +547,7 @@ def add_new_patient(request):
                     image = request.FILES['image']
                     patient.image = image
                     patient.save()
-                    # if user.profile_img:
-                    #     default_storage.delete(user.profile_img.path)
-                messages.success(request, "Patient details added successfully.")
+                messages.success(request, f"Patient {patient.name!r} added successfully.")
             except Exception as error:
                 messages.error(request, "There is an error with form data.")
 
@@ -595,7 +597,7 @@ def edit_patient(request, patient_id):
                     default_storage.delete(patient.image.path)
                     patient.image = image
             patient.save()
-            messages.success(request, "Patient details updates successfully.")
+            messages.success(request, f"Patient {patient.name!r} updates successfully.")
         except Exception as error:
             messages.error(request, "There is an error with form data.")
 
@@ -605,39 +607,51 @@ def edit_patient(request, patient_id):
 @login_required(login_url='login')
 def delete_patient(request, patient_id):
     if request.method == 'GET':
-        clinic = request.user.clinic
-        doctor = request.user
-        
+        patient = None
         if request.user.is_admin:
+            clinic = request.user.clinic
+            doctor = request.user
             patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
-        # elif request.user.is_new_staff:
-        #     patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+        
+        elif request.user.is_admin_staff:
+            clinic = request.user.clinic
+            doctor = request.user
+            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
 
-        patient.delete()
-        messages.success(request, "Patient deleted successfully.")
+        if patient:
+            patient_name = patient.name
+            patient.delete()
+            messages.success(request, f"Patient {patient_name!r} deleted successfully.")
         return redirect ('patients')
-    
     return HttpResponseBadRequest()
 
 
+@require_http_methods(['GET'])
 @login_required(login_url='login')
 def patient_details(request, patient_id):
     if request.method == 'GET':
-        patient = Patient.objects.filter(id=patient_id).first()
+        patient = Patient.objects.none()
+        prescriptions = Prescription.objects.none()
+
+        if request.user.is_superuser:
+            patient = Patient.objects.filter(id=patient_id).first()
+        elif request.user.is_staff:
+            patient = Patient.objects.filter(id=patient_id).first()
+        elif request.user.is_admin:
+            patient = Patient.objects.filter(id=patient_id, clinic=request.user.clinic_id).first()
+        elif request.user.is_admin_staff:
+            patient = Patient.objects.filter(id=patient_id, clinic=request.user.clinic_id).first()
+        else:
+            return HttpResponseForbidden("You do not have permission to this source.")
+
         if patient:
             prescriptions = Prescription.objects.filter(patient=patient).order_by('visit_date')
-            context = {
-                'patient' : patient,
-                'prescriptions' : prescriptions,
-            }
-        else: 
-            context = {
-                'patient' : Patient.objects.none(),
-                'prescriptions' : Prescription.objects.none(),
-            }
         
+        context = {
+            'patient': patient,
+            'prescriptions' : prescriptions,
+        }
         return render(request, 'patient_details.html', context)
-
 
 
 @login_required(login_url='login')
@@ -649,6 +663,8 @@ def add_patient_visit(request, patient_id):
         return render(request, 'add_patient_visit.html', {'today': today})
     
     if request.method == 'POST':
+        if request.user.is_admin:
+            pass
         patient = get_object_or_404(Patient, id=patient_id)
 
         symptoms = request.POST.get('symptoms')
@@ -660,11 +676,11 @@ def add_patient_visit(request, patient_id):
         paid_amount = request.POST.get('paid_amount',0)
         
         try:
-            amount = int(amount)
-            paid_amount = int(paid_amount)
+            amount = abs(int(amount))
+            paid_amount = abs(int(paid_amount))
             pending_amount = amount - paid_amount
         except ValueError:
-            messages.error(request, "amount value is not integer")
+            messages.error(request, "amount value is not an integer")
             return render(request, 'add_patient_visit.html', {'today': today})
         
         if amount == paid_amount:
@@ -696,10 +712,9 @@ def add_patient_visit(request, patient_id):
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
         else:
-            messages.success(request, "new visit added successfully.")
+            messages.success(request, f"{patient.name!r} new visit added successfully.")
 
         return redirect('patient_details', patient_id=patient_id)
-
     
 
 @login_required(login_url='login')
@@ -708,14 +723,11 @@ def edit_patient_visit(request, patient_id, visit_id):
         prs = Prescription.objects.filter(id=visit_id).first()
         return render(request, 'edit_patient_visit.html', {'today': now().date(), 'prs':prs, 'patient_id':patient_id, 'visit_id':visit_id})
     
-    if request.method == 'POST':
-        doctor = request.user
-        #clinic = Clinic.objects.get(user=doctor)
-        
+    if request.method == 'POST':        
         if request.user.is_admin:
+            doctor = request.user
             clinic = request.user.clinic
-        # elif request.user.is_new_staff:
-        #     pass
+            
 
         patient = get_object_or_404(Patient, id=patient_id, doctor=doctor)  #patinet of perticuler doctor
         prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #prescription of perticuler 

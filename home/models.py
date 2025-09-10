@@ -120,6 +120,12 @@ class Clinic(models.Model):
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
 
+    class Meta:
+        permissions = [
+            ("can_approve_clinic", "Can Approve Clinic"),
+            ("can_view_sensitive_data", "Can View Sensitive Data"),
+        ]
+
     def __str__(self):
         return f"{self.name}"
 
