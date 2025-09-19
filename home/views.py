@@ -17,7 +17,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from cities_light.models import Country, Region, City
 
-from .models import  User, Clinic, Patient, Prescription, Invoice
+from .models import  User, Clinic, Patient, Prescription, Invoice, Notification, SeenNotification
 from .custom_token_generator import TokenGenerator
 from .serializers import RegionSerializers, CitySerializers
 from .secret_variables import *
@@ -822,6 +822,57 @@ def check_unique(request):
     return HttpResponseBadRequest()
 
 
+@login_required(login_url='login')
+def get_users(request):
+    if request.method == 'GET':
+        x = lambda users: [user for user in users]
+        users = []
+        if request.user.is_superuser or request.user.is_staff:
+            users = x(   
+                User.objects.filter(is_active=True)
+                .exclude(id=request.user.id)
+                .values_list('email',)
+            )
+        elif request.user.is_admin or request.user.is_admin_staff:
+            users = x(
+                User.objects.filter(is_active=True, clinic=request.user.clinic_id)
+                .exclude(id=request.user.id)
+                .values_list('email',)
+            )
+        return JsonResponse({'data': users}, status=200)
+    
+    return JsonResponse({'data': []}, status=400)
+
+# fetch("/staffs/")
+#   .then(response => {
+#     if (!response.ok) {
+#       throw new Error("Network response was not ok " + response.statusText);
+#     }
+#     return response.json(); // convert response to JSON
+#   })
+#   .then(data => {
+#     console.log("Post Data:", data);
+#   })
+#   .catch(error => {
+#     console.error("Fetch error:", error);
+#   });
+
+
+@require_http_methods(["GET", "POST", "DELETE", "PATCH"])
+@login_required(login_url='login')
+def notes(request):
+    if request.method == 'GET':
+        notes = Notification.objects.filter(receiver=request.user).order_by('-created_at')
+    elif request.method == 'POST':
+
+        if request.user.is_superuser or request.user.is_staff:
+            notes = Notification.objects.filter(receiver=request.user).order_by('-created_at')
+        elif request.user.is_admin:
+            pass
+        elif request.user.is_admin_staff:
+            pass
+    
+    
 # ROUGHT
 def rough(request):
     if request.method == 'GET':

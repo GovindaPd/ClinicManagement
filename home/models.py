@@ -63,18 +63,18 @@ class CustomUserManager(UserManager):
 
 
 class User(AbstractUser):
-    custom_id       = models.CharField(max_length=10, unique=True, blank=False, null=False)
-    clinic          = models.ForeignKey('Clinic', on_delete=models.CASCADE, related_name="clinic_users", null=True, blank=True)
-    profile_img     = models.ImageField(upload_to=rename_image, blank=True)
-    phone           = models.CharField(validators=[indian_phone_regex], max_length=15, blank=True, null=True)
-    is_superuser    = models.BooleanField(default=False)
-    is_staff        = models.BooleanField(default=False)
-    is_admin        = models.BooleanField(default=False)    # clinic admin
-    is_admin_staff  = models.BooleanField(default=False)    # clinic staff
+    custom_id   = models.CharField(max_length=10, unique=True, blank=False, null=False)
+    clinic      = models.ForeignKey('Clinic', on_delete=models.CASCADE, related_name="clinic_users", null=True, blank=True)
+    profile_img = models.ImageField(upload_to=rename_image, blank=True)
+    phone       = models.CharField(validators=[indian_phone_regex], max_length=15, blank=True, null=True)
+    is_superuser= models.BooleanField(default=False)
+    is_staff    = models.BooleanField(default=False)
+    is_admin    = models.BooleanField(default=False)    # clinic admin
+    is_admin_staff= models.BooleanField(default=False)    # clinic staff
     is_password_reset=models.BooleanField(default=False)
-    is_active       = models.BooleanField(default=True)
-    updated_at      = models.DateTimeField(auto_now=True)
-    objects         = CustomUserManager()
+    is_active   = models.BooleanField(default=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+    objects     = CustomUserManager()
 
     @property
     def user_type(self):
@@ -200,27 +200,26 @@ class Invoice(models.Model):
 
 
 class Notification(models.Model):
-    sender  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_mails', null=False, blank=False)
-    receivers= models.ManyToManyField(User, through='NotificationReceiver', related_name='notifications', null=False, blank=False)
+    sender  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_notes', null=False, blank=False)
+    receiver= models.ManyToManyField(User, through='SeenNotification', related_name='seen_notes', null=False, blank=False)
     subject = models.CharField(max_length=250, blank=False, null=False)
-    message = models.TextField(blank=True, null=True)        
-    seen    = models.BooleanField(default=False)
+    message = models.TextField(blank=True, null=True)
     
     created_at= models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"To: {self.to.username} - Message: {self.message[:20]}..."
+        return f"Message: {self.subject[:20]}..."
 
 
-class NotificationReceiver(models.Model):
-    notification = models.ForeignKey(Notification, on_delete=models.CASCADE)
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE)
+class SeenNotification(models.Model):
+    note = models.ForeignKey(Notification, on_delete=models.CASCADE)
+    seen_by = models.ForeignKey(User, on_delete=models.CASCADE)
     seen = models.BooleanField(default=False)
     seen_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.receiver.username} - {self.notification.subject}"
+        return f"{self.seen_by.username} senn notification: {self.note.id}"
 
 
 class RepetedAttempt(models.Model):

@@ -34,6 +34,7 @@ urlpatterns = [
     path('country-states/', views.country_states, name='country_states'),
     path('state-cities/<int:region>/', views.state_cities, name='state_cities'),
     
+    path('staffs/', views.get_users, name='get_users'),
     path('rough/', views.rough, name='rough'),
     path('check-unique/', views.check_unique, name="check_unique"),
 ]
