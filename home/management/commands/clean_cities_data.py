@@ -4,7 +4,9 @@ from unidecode import unidecode
 
 class Command(BaseCommand):
     help = "Clean and normalize city and region names in the database"
-
+    # first populate data in model run belo command
+    # python manage.py cities_light
+    # command: python manage.py clean_cities_data   #file name here: clean_cities_data
     def handle(self, *args, **options):
         # Clean City names
         cities = City.objects.all()

@@ -719,15 +719,17 @@ def add_patient_visit(request, patient_id):
 
 @login_required(login_url='login')
 def edit_patient_visit(request, patient_id, visit_id):
+    today = now().date()
+    today = today.strftime("%Y-%m-%d")
+
     if request.method == 'GET':
         prs = Prescription.objects.filter(id=visit_id).first()
-        return render(request, 'edit_patient_visit.html', {'today': now().date(), 'prs':prs, 'patient_id':patient_id, 'visit_id':visit_id})
+        return render(request, 'edit_patient_visit.html', {'today': today, 'prs':prs, 'patient_id':patient_id, 'visit_id':visit_id})
     
     if request.method == 'POST':        
-        if request.user.is_admin:
+        if request.user.is_admin or request.user.is_admin_staff:
             doctor = request.user
             clinic = request.user.clinic
-            
 
         patient = get_object_or_404(Patient, id=patient_id, doctor=doctor)  #patinet of perticuler doctor
         prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #prescription of perticuler 
@@ -735,14 +737,14 @@ def edit_patient_visit(request, patient_id, visit_id):
         symptoms = request.POST.get('symptoms')
         prescription = request.POST.get('prescription')
         visit_date = request.POST.get('visit_date')
-        next_visit = request.POST.get('next_visit')
+        next_visit = request.POST.get('next_visit') or None
         image = request.FILES.get('image')
         amount = request.POST.get('amount',0)
         paid_amount = request.POST.get('paid_amount',0)
         
         try:
-            amount = int(amount)
-            paid_amount = int(paid_amount)
+            amount = abs(int(amount))
+            paid_amount = abs(int(paid_amount))
             pending_amount = amount - paid_amount
         except ValueError:
             messages.error("amount value is not integer")
@@ -767,17 +769,16 @@ def edit_patient_visit(request, patient_id, visit_id):
                         os.remove(prs.image.path)
                     prs.image = image
 
-                prs.invoice.amount = amount
-                prs.invoice.pending_amount = pending_amount
-                prs.invoice.status = status
-
+                invoice = prs.invoice
+                invoice.amount = amount
+                invoice.pending_amount = pending_amount
+                invoice.status = status
                 prs.save()
-
+                invoice.save()
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
         else:
             messages.success(request, "Visit updated successfully.")
-
         return redirect('patient_details', patient_id=patient_id)
     
 
@@ -803,6 +804,8 @@ def delete_patient_visit(request, patient_id, visit_id):
 
 @login_required(login_url='login')
 def check_unique(request):
+    """ check email or username is unique or not """
+
     if request.method == 'GET':
         field = request.GET.get('field')
         value = request.GET.get('value')
@@ -839,8 +842,7 @@ def get_users(request):
                 .exclude(id=request.user.id)
                 .values_list('email',)
             )
-        return JsonResponse({'data': users}, status=200)
-    
+        return JsonResponse({'data': users}, status=200) 
     return JsonResponse({'data': []}, status=400)
 
 # fetch("/staffs/")
@@ -857,21 +859,44 @@ def get_users(request):
 #     console.error("Fetch error:", error);
 #   });
 
+# async function getData() {
+#   const response = await fetch("https://jsonplaceholder.typicode.com/posts/1");
+#   const data = await response.json();
+#   console.log("Data:", data); // ✅ actual data
+# }
+
+# getData();
 
 @require_http_methods(["GET", "POST", "DELETE", "PATCH"])
 @login_required(login_url='login')
 def notes(request):
     if request.method == 'GET':
         notes = Notification.objects.filter(receiver=request.user).order_by('-created_at')
-    elif request.method == 'POST':
-
-        if request.user.is_superuser or request.user.is_staff:
-            notes = Notification.objects.filter(receiver=request.user).order_by('-created_at')
-        elif request.user.is_admin:
-            pass
-        elif request.user.is_admin_staff:
-            pass
     
+    elif request.method == 'POST':
+        subject = request.POST.get('subject','')
+        message = request.POST.get('message','')
+        to_users = request.POST.get('to_users','')
+
+        if not subject or not message or not to_users:
+            return JsonResponse({'status':False, 'message':"Invalid form data."}, status=400)
+        
+        users = to_users.split(',')
+        if not u.exists():
+            return JsonResponse({'status':False, 'message':"No valid user found."}, status=400)
+        
+        if request.user.is_superuser or request.user.is_staff:
+            u = User.objects.filter(email__in=users).exclude(id=request.user.id)
+        elif request.user.is_admin or request.user.is_admin_staff:
+            u = User.objects.filter(email__in=users, clinic=request.user.clinic_id).exclude(id=request.user.id)
+        
+        notes = Notification(
+            sender = request.user,
+            subject = subject,
+            message = message
+        )
+        notes.receiver.add(*u)
+        notes.save()
     
 # ROUGHT
 def rough(request):

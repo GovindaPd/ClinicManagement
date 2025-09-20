@@ -119,8 +119,8 @@
                 value = element.value
                 error = $("#username_error")
                 
-                if (value.length < 3) {
-                    element.setCustomValidity('username should be greator then 2 characters.');
+                if (value.length < 6) {
+                    element.setCustomValidity('username should be greator then 5 characters.');
                     error.hide()
                 }
                 else {

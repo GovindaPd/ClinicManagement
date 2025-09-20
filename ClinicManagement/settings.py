@@ -77,6 +77,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',    #postgres
     }
 }
+AUTH_USER_MODEL = 'home.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -93,7 +94,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+#CITIES_LIGHT_TRANSLATION_LANGUAGES = ['en', 'es']
 CITIES_LIGHT_INCLUDE_COUNTRIES = ['IN',]
+# populate data in model 
+# python manage.py cities_light
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -113,7 +117,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'home', 'static')]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'home.User'
+
 
 # REST_FRAMEWORK = {
 #     'DEFAULT_AUTHENTICATION_CLASSES': [

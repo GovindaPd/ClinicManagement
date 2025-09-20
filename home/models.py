@@ -74,6 +74,8 @@ class User(AbstractUser):
     is_password_reset=models.BooleanField(default=False)
     is_active   = models.BooleanField(default=True)
     updated_at  = models.DateTimeField(auto_now=True)
+
+    # USERNAME_FIELD = 'email'
     objects     = CustomUserManager()
 
     @property
@@ -201,7 +203,7 @@ class Invoice(models.Model):
 
 class Notification(models.Model):
     sender  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_notes', null=False, blank=False)
-    receiver= models.ManyToManyField(User, through='SeenNotification', related_name='seen_notes', null=False, blank=False)
+    receiver= models.ManyToManyField(User, related_name='received_notes',)
     subject = models.CharField(max_length=250, blank=False, null=False)
     message = models.TextField(blank=True, null=True)
     
@@ -215,26 +217,29 @@ class Notification(models.Model):
 class SeenNotification(models.Model):
     note = models.ForeignKey(Notification, on_delete=models.CASCADE)
     seen_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    seen = models.BooleanField(default=False)
-    seen_at = models.DateTimeField(null=True, blank=True)
+    seen = models.BooleanField(default=True)   # since row means "seen"
+    seen_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
 
+    class Meta:
+        unique_together = ('note', 'seen_by')  # prevent duplicates
+    
     def __str__(self):
         return f"{self.seen_by.username} senn notification: {self.note.id}"
 
 
-class RepetedAttempt(models.Model):
-    ip_address = models.GenericIPAddressField()
-    username = models.CharField(max_length=150, blank=True, null=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
+# class RepetedAttempt(models.Model):
+#     ip_address = models.GenericIPAddressField()
+#     username = models.CharField(max_length=150, blank=True, null=True)
+#     timestamp = models.DateTimeField(auto_now_add=True)
 
-    @classmethod
-    def too_many_attempts(cls, ip, limit=5, minutes=5):
-        """
-        Returns True if the IP has exceeded `limit` attempts within `minutes`.
-        """
-        cutoff = timezone.now() - timedelta(minutes=minutes)
-        recent = cls.objects.filter(ip_address=ip, timestamp__gte=cutoff).count()
-        return recent >= limit
+#     @classmethod
+#     def too_many_attempts(cls, ip, limit=5, minutes=5):
+#         """
+#         Returns True if the IP has exceeded `limit` attempts within `minutes`.
+#         """
+#         cutoff = timezone.now() - timedelta(minutes=minutes)
+#         recent = cls.objects.filter(ip_address=ip, timestamp__gte=cutoff).count()
+#         return recent >= limit
     
     
 # class PasswordResetOTP(models.Model):

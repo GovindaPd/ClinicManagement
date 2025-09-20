@@ -115,8 +115,8 @@
                             data-toggle="modal" data-target="#reportModal" data-src="{{prs.image.url}}" onclick="showImageModal(this)">
                           {% endif %}
                         </td>
-                        <td>{{prs.invoice.amount}}</td>
-                        <td>{{prs.invoice.pending_amount}}</td>
+                        <td>{{prs.invoice.amount|default:0}} <i class="fas fa-rupee-sign"></i></td>
+                        <td>{{prs.invoice.pending_amount|default:0}} <i class="fas fa-rupee-sign"></td>
                         <td>{{prs.invoice.status}}</td>
                         <td>{{prs.visit_date|date:'d-M-Y'}}</td>
                         <td>
