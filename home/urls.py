@@ -33,9 +33,11 @@ urlpatterns = [
     path('all-users/', views.all_users, name='all_users'),
     path('country-states/', views.country_states, name='country_states'),
     path('state-cities/<int:region>/', views.state_cities, name='state_cities'),
+
+    path('notifications/', views.notes, name='notifications'),
+    # path('add-note/', views.add_note, name='add_note'),
     
     path('staffs/', views.get_users, name='get_users'),
-    path('rough/', views.rough, name='rough'),
     path('check-unique/', views.check_unique, name="check_unique"),
 ]
 

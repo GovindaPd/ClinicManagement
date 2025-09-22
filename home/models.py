@@ -215,10 +215,10 @@ class Notification(models.Model):
 
 
 class SeenNotification(models.Model):
-    note = models.ForeignKey(Notification, on_delete=models.CASCADE)
+    note = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name='seen_notes')
     seen_by = models.ForeignKey(User, on_delete=models.CASCADE)
     seen = models.BooleanField(default=True)   # since row means "seen"
-    seen_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    seen_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('note', 'seen_by')  # prevent duplicates

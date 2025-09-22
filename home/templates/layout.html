@@ -242,7 +242,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link " href="{% url 'patients' %}" aria-expanded="true" >
+                <a class="nav-link " href="{% url 'notifications' %}" aria-expanded="true" >
                     <i class="fas fa-envelope-open-text"></i>
                     <span>Notification</span>
                 </a>
@@ -396,6 +396,7 @@
                                 <!-- Counter - Alerts -->
                                 <span class="badge badge-danger badge-counter">3+</span>
                             </a>
+
                             <!-- Dropdown - Alerts -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="alertsDropdown">
@@ -445,11 +446,13 @@
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-envelope fa-fw custome-color-dark"></i>
                                 <!-- Counter - Messages -->
-                                <span class="badge badge-danger badge-counter">7</span>
+                                {% if unread_notifications > 0 %}
+                                <span class="badge badge-danger badge-counter">{{unread_notifications}}</span>
+                                {% endif %}
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="messagesDropdown">
+                                aria-labelledby="messagesDropdown" style="max-height: 400px;">
                                 <h6 class="dropdown-header box-background-border-dark">
                                     Message Center
                                 </h6>

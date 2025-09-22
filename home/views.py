@@ -11,6 +11,7 @@ from django.conf import settings
 from django.urls import resolve
 from django.db import transaction
 from django.db import OperationalError, IntegrityError
+from django.db.models import Count, Exists, OuterRef, F, Q
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 # from django.core.validators import V
@@ -867,38 +868,122 @@ def get_users(request):
 
 # getData();
 
-@require_http_methods(["GET", "POST", "DELETE", "PATCH"])
+
+@require_http_methods(["GET", "POST", "DELETE"])
 @login_required(login_url='login')
-def notes(request):
-    if request.method == 'GET':
-        notes = Notification.objects.filter(receiver=request.user).order_by('-created_at')
-    
-    elif request.method == 'POST':
+def notes(request, note_id=None):
+    u_emails = []
+    if request.user.is_superuser or request.user.is_staff:
+        u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
+    elif request.user.is_admin or request.user.is_admin_staff:
+        u_emails = User.objects.filter(is_active=True, clinic=request.user.clinic_id).exclude(id=request.user.id).values_list('email', flat=True)
+
+    if request.method == 'POST':
         subject = request.POST.get('subject','')
         message = request.POST.get('message','')
-        to_users = request.POST.get('to_users','')
+        recipients = request.POST.getlist('recipients', [])
+        
+        if not subject or not message or not recipients:
+            messages.error(request, "All fields are required.")
+            return render(request, 'notifications.html', {'notes':notes, 'users':u_emails})
+        
+        recipients = [r.strip().lower() for r in recipients]
+        if request.user.email in recipients:
+            recipients.remove(request.user.email)
+        
+        if request.user.is_admin or request.user.is_admin_staff:
+            receiver = User.objects.filter(email__in=recipients, clinic=request.user.clinic_id, is_active=True)
+        elif request:
+            receiver = User.objects.filter(email__in=recipients, is_active=True)
 
-        if not subject or not message or not to_users:
-            return JsonResponse({'status':False, 'message':"Invalid form data."}, status=400)
-        
-        users = to_users.split(',')
-        if not u.exists():
-            return JsonResponse({'status':False, 'message':"No valid user found."}, status=400)
-        
-        if request.user.is_superuser or request.user.is_staff:
-            u = User.objects.filter(email__in=users).exclude(id=request.user.id)
-        elif request.user.is_admin or request.user.is_admin_staff:
-            u = User.objects.filter(email__in=users, clinic=request.user.clinic_id).exclude(id=request.user.id)
-        
-        notes = Notification(
+        note = Notification.objects.create(
             sender = request.user,
             subject = subject,
             message = message
         )
-        notes.receiver.add(*u)
-        notes.save()
+        note.receiver.set(receiver)
+        note.save()
+        messages.success(request, "Notification sent successfully.")
+
+    elif request.method == 'DELETE':
+        if note_id:
+            if request.user.is_superuser or request.user.is_staff:
+                note = Notification.objects.filter(id=note_id).first()
+            else:
+                note = Notification.objects.filter(id=note_id, sender=request.user).first()
+            if note:
+                note.delete()
+                messages.success(request, "Notification deleted successfully.")
+            else:
+                messages.error(request, "Notification not found.")
+        else:
+            message.error(request, "Notification id is required.")
+
+    if request.user.is_superuser or request.user.is_staff:
+        note_obj = Notification.objects.all().order_by('-created_at')
+    else:
+        note_obj = Notification.objects.filter(sender=request.user).prefetch_related("receiver").order_by('-created_at')
     
-# ROUGHT
-def rough(request):
-    if request.method == 'GET':
-        return render(request, 'extra_template/hekathon.html')#'chess.html'
+    notes = [{
+                "id": note.id,
+                "subject": note.subject,
+                "message": note.message,
+                "receivers": list(note.receiver.values_list("email", flat=True))
+            } for note in note_obj]
+    return render(request, 'notifications.html', {'notes':notes, 'users':u_emails})
+
+
+def getNotifications(request):
+    pass
+    # notes = (
+        #     Notification.objects.filter(receiver=request.user)
+        #     .annotate(is_seen=Exists(
+        #         SeenNotification.object.filter(
+        #             note=OuterRef('pk'),
+        #             seen_by=request.user
+        #         )
+        #     )).order_by('-created_at')
+        # )
+        # if not notes.exists():
+        #     seen_count = 0
+        #     unseen_count = 0
+        # else:
+        #     seen_count = notes.filter(is_seen=True).count()
+        #     unseen_count = notes.filter(is_seen=False).count()
+
+        # return JsonResponse({
+        #     'notes':notes,
+        #     'seen_count': seen_count,
+        #     'unseen_count': unseen_count
+        #     }, status=200)
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+def markSeenNotification(request, note_id):
+    if note_id:
+        note = Notification.objects.filter(id=note_id, receiver=request.user).first()
+        if note:
+            seen_note, created = SeenNotification.objects.get_or_create(
+                note=note,
+                seen_by=request.user,
+            )
+            if created:
+                return JsonResponse({'marked': True}, status=200)
+            else:
+                return JsonResponse({'marked': False}, status=200)
+        else:
+            return JsonResponse({'message': 'Notification not found.'}, status=404)
+    else:
+        return JsonResponse({'message': 'Bad request.'}, status=400)
+            
+    # if request.method == 'POST':
+    #     note = get_object_or_404(Notification, id=note_id, receiver=request.user)
+    #     seen_note, created = SeenNotification.objects.get_or_create(
+    #         note=note,
+    #         seen_by=request.user
+    #     )
+    #     if created:
+    #         return JsonResponse({'message': 'Notification marked as seen.'}, status=200)
+    #     else:
+    #         return JsonResponse({'message': 'Notification was already marked as seen.'}, status=200)
+    # return JsonResponse({'message': 'Invalid request method.'}, status=400)
