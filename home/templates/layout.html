@@ -388,7 +388,7 @@
                             </div>
                         </li>
 
-                        <!-- Nav Item - Alerts -->
+                        {% comment %} <!-- Nav Item - Alerts -->
                         <li class="nav-item dropdown no-arrow mx-1 ">
                             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -425,25 +425,14 @@
                                         $290.29 has been deposited into your account!
                                     </div>
                                 </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-warning">
-                                            <i class="fas fa-exclamation-triangle text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 2, 2019</div>
-                                        Spending Alert: We've noticed unusually high spending for your account.
-                                    </div>
-                                </a>
                                 <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
                             </div>
-                        </li>
+                        </li> {% endcomment %}
 
                         <!-- Nav Item - Messages -->
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="fetchNotifications()">
                                 <i class="fas fa-envelope fa-fw custome-color-dark"></i>
                                 <!-- Counter - Messages -->
                                 {% if unread_notifications > 0 %}
@@ -451,12 +440,12 @@
                                 {% endif %}
                             </a>
                             <!-- Dropdown - Messages -->
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="messagesDropdown" style="max-height: 400px;">
-                                <h6 class="dropdown-header box-background-border-dark">
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" id="messagesDropdownDiv"
+                                aria-labelledby="messagesDropdown" style="max-height: 400px; overflow-y: auto;">
+                                <h6 class="dropdown-header box-background-border-dark" style="position: sticky; top: 0; z-index: 600;">
                                     Message Center
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
                                         <img class="rounded-circle" src="img/undraw_profile_1.svg"
                                             alt="...">
@@ -467,8 +456,8 @@
                                             problem I've been having.</div>
                                         <div class="small text-gray-500">Emily Fowler · 58m</div>
                                     </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                </a> {% endcomment %}
+                                {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
                                         <img class="rounded-circle" src="img/undraw_profile_2.svg"
                                             alt="...">
@@ -479,8 +468,8 @@
                                             would you like them sent to you?</div>
                                         <div class="small text-gray-500">Jae Chun · 1d</div>
                                     </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                </a> {% endcomment %}
+                                {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
                                         <img class="rounded-circle" src="img/undraw_profile_3.svg"
                                             alt="...">
@@ -492,19 +481,8 @@
                                         <div class="small text-gray-500">Morgan Alvarez · 2d</div>
                                     </div>
                                 </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
-                                            told me that people say this to all dogs, even if they aren't good...</div>
-                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
-                                    </div>
-                                </a>
                                 <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                                {% endcomment %}
                             </div>
                         </li>
 
@@ -636,6 +614,7 @@
     <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script>
 
     <script>
+        var note = false;
         document.getElementById("search-bar").addEventListener("keyup", function() {
             let filter = this.value.toLowerCase();
             let rows = document.querySelectorAll("table tbody tr");
@@ -684,6 +663,41 @@
 
             // toggle state
             nameSortAsc = !nameSortAsc;
+        }
+
+        function fetchNotifications(){
+            if (note) return; // If notifications are already fetched, do nothing
+            let messagesDiv = document.getElementById('messagesDropdownDiv');
+            let message_string = '';
+            let img = '';
+            fetch('/get-receive-notifications/')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                for (let note of data.notes){
+                    if (note.sender_profile_img){
+                        img = `<img class="rounded-circle" src="/media/${note.sender_profile_img}" alt="sender profile image">`
+                    }
+                    else{
+                        img = `<div class="img-profile rounded-circle user-face" title="${note.sender_username}" style="hight:30px; width:30px;">
+                            ${note.sender_username.charAt(0).toUpperCase()}
+                        </div>`
+                    }
+                    message_string = message_string + `<a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">${img}</div>
+                                    </div>
+                                    <div class="font-weight-bold">
+                                        <div class="text-truncate">${note.subject}</div>
+                                        <div class="small text-gray-500">${note.sender_username} - ${note.created_at}</div>
+                                    </div>
+                                </a>`
+                }
+                console.log("4-----")
+                messagesDiv.insertAdjacentHTML('beforeend', message_string);
+                note = true;
+                console.log("5-----")
+            })
+            .catch(error => console.error('Error fetching notifications:', error));
         }
     </script>
 

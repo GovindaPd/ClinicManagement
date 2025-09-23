@@ -35,7 +35,8 @@ urlpatterns = [
     path('state-cities/<int:region>/', views.state_cities, name='state_cities'),
 
     path('notifications/', views.notes, name='notifications'),
-    # path('add-note/', views.add_note, name='add_note'),
+    path('get-receive-notifications/', views.getReceiveNotifications, name='get_receive_notifications'),
+    path('delete-notification/<int:note_id>/', views.delete_note, name='delete_notification'),
     
     path('staffs/', views.get_users, name='get_users'),
     path('check-unique/', views.check_unique, name="check_unique"),

@@ -123,8 +123,10 @@
                         oninput="validateInput(this)" rows="4" required disabled>{% if request.user.clinic.specializations %}{{request.user.clinic.specializations}}{% endif %}</textarea>
                 </div>
             </div>
-            <button class="btn cb" name="submit_clinic_details" type="submit" style="margin-top: 20px; width: 10rem; display:none;">Save</button>
-            <button class="btn cb" name="hide_clinic_details" type="button" style="margin-top: 20px; width: 10rem; display:none;">Hide</button>
+            <div class="row" style="margin-top: 20px; margin-bottom: 20px; padding-left:10px;">
+                <button class="btn cb" name="submit_clinic_details" type="submit" style="width: 10rem; display:none;">Save</button>
+                <button class="btn cb" name="hide_clinic_details" type="button" style="width: 10rem; display:none;">Hide</button>
+            </div>
         </form>
     </div>
   </div>

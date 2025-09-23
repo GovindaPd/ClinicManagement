@@ -56,13 +56,13 @@ def country_states(request):
 
 
 def state_cities(request, region=None):
-      if region:
-            # state = Region.objects.filter(id=state).first()
-            cities = City.objects.filter(region=region).order_by('name')#.only('id','name')
-            serializer = CitySerializers(cities, many=True)
-            return JsonResponse({'cities':serializer.data}, status=200)
-      else:
-          return JsonResponse({'cities':[]}, status=200)
+    if region:
+        # state = Region.objects.filter(id=state).first()
+        cities = City.objects.filter(region=region).order_by('name')#.only('id','name')
+        serializer = CitySerializers(cities, many=True)
+        return JsonResponse({'cities':serializer.data}, status=200)
+    else:
+        return JsonResponse({'cities':[]}, status=200)
       
 
 @login_required(login_url='login')
@@ -108,7 +108,8 @@ def login_in(request):
             request.session.set_expiry(3600 * 24 * 30)  #30 days in seconds
 
         if user.is_superuser:
-            return redirect('/admin/')
+            # return redirect('/admin/')
+            pass
         elif user.is_admin:
             pass
         
@@ -716,8 +717,9 @@ def add_patient_visit(request, patient_id):
             messages.success(request, f"{patient.name!r} new visit added successfully.")
 
         return redirect('patient_details', patient_id=patient_id)
-    
 
+
+@require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
 def edit_patient_visit(request, patient_id, visit_id):
     today = now().date()
@@ -732,21 +734,20 @@ def edit_patient_visit(request, patient_id, visit_id):
             doctor = request.user
             clinic = request.user.clinic
 
-        patient = get_object_or_404(Patient, id=patient_id, doctor=doctor)  #patinet of perticuler doctor
-        prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #prescription of perticuler 
-
-        symptoms = request.POST.get('symptoms')
-        prescription = request.POST.get('prescription')
-        visit_date = request.POST.get('visit_date')
-        next_visit = request.POST.get('next_visit') or None
-        image = request.FILES.get('image')
-        amount = request.POST.get('amount',0)
+        patient     = get_object_or_404(Patient, id=patient_id, doctor=doctor)  #patinet of perticuler doctor
+        prs         = get_object_or_404(Prescription, id=visit_id, patient=patient) #prescription of perticuler 
+        symptoms    = request.POST.get('symptoms')
+        prescription= request.POST.get('prescription')
+        visit_date  = request.POST.get('visit_date')
+        next_visit  = request.POST.get('next_visit') or None
+        image       = request.FILES.get('image')
+        amount      = request.POST.get('amount',0)
         paid_amount = request.POST.get('paid_amount',0)
         
         try:
-            amount = abs(int(amount))
+            amount      = abs(int(amount))
             paid_amount = abs(int(paid_amount))
-            pending_amount = amount - paid_amount
+            pending_amount= amount - paid_amount
         except ValueError:
             messages.error("amount value is not integer")
             return redirect('patient_details', patient_id=patient_id)
@@ -764,17 +765,16 @@ def edit_patient_visit(request, patient_id, visit_id):
                 prs.prescription    = prescription
                 prs.visit_date      = visit_date
                 prs.next_visit      = next_visit
-                
+
                 if image:
                     if prs.image:
                         os.remove(prs.image.path)
                     prs.image = image
-
+                prs.save()
                 invoice = prs.invoice
                 invoice.amount = amount
                 invoice.pending_amount = pending_amount
                 invoice.status = status
-                prs.save()
                 invoice.save()
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
@@ -783,46 +783,173 @@ def edit_patient_visit(request, patient_id, visit_id):
         return redirect('patient_details', patient_id=patient_id)
     
 
+@require_http_methods(['GET'])
 @login_required(login_url='login')
 def delete_patient_visit(request, patient_id, visit_id):
-    if request.method == 'GET':
-        clinic = request.user.clinic
-        doctor = request.user
-        
-        if request.user.is_admin:
-            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
-        # elif request.user.is_new_staff:
-        #     patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
-
-        prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #perticuler prescription of patient 
-        prs.delete()
-
-        messages.success(request, "Visit deleted successfully.")
-        return redirect ('patient_details', patient_id=patient_id)
+    """ delete perticuler visit of patient """
     
-    return HttpResponseBadRequest()
+    clinic = request.user.clinic
+    doctor = request.user
+    
+    if request.user.is_superuser or request.user.is_staff:
+        patient = get_object_or_404(Patient, id=patient_id)
+    elif request.user.is_admin:
+        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)
+    elif request.user.is_admin_staff:
+        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+
+    prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #perticuler prescription of patient 
+    prs.delete()
+    messages.success(request, "Visit deleted successfully.")
+    return redirect ('patient_details', patient_id=patient_id)
+
+
+@require_http_methods(["GET", "POST"])
+@login_required(login_url='login')
+def notes(request, note_id=None):
+    """ send notification to users and view all notes """
+
+    u_emails = []
+    if request.user.is_superuser or request.user.is_staff:
+        u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
+    elif request.user.is_admin or request.user.is_admin_staff:
+        u_emails = User.objects.filter(Q(is_superuser=True) | Q(is_staff=True) | (Q(clinic=request.user.clinic_id)), is_active=True).values_list('email', flat=True)
+        # u_emails = User.objects.filter(is_active=True, clinic=request.user.clinic_id).exclude(id=request.user.id).values_list('email', flat=True)
+
+    if request.method == 'POST':
+        subject = request.POST.get('subject','')
+        message = request.POST.get('message','')
+        recipients = request.POST.getlist('recipients', [])
+
+        if subject and message and recipients:
+            recipients = [ r.strip().lower() for r in recipients ]
+            
+            if request.user.email in recipients:
+                recipients.remove(request.user.email)
+
+            if request.user.is_superuser or request.user.is_staff:
+                receiver = User.objects.filter(email__in=recipients, is_active=True)
+            elif request.user.is_admin or request.user.is_admin_staff:
+                receiver = User.objects.filter(Q(is_superuser=True) | Q(is_staff=True) | (Q(clinic=request.user.clinic_id)), email__in=recipients, is_active=True)
+                # receiver = User.objects.filter(email__in=recipients, clinic=request.user.clinic_id, is_active=True)
+            
+            note = Notification.objects.create(
+                sender = request.user,
+                subject = subject,
+                message = message
+            )
+            note.receiver.set(receiver)
+            note.save()
+            messages.success(request, "Notification sent successfully.")
+        else:
+            messages.error(request, "All fields are required.")
+
+    # common for get and post method
+    if request.user.is_superuser or request.user.is_staff:
+        note_obj = Notification.objects.all().prefetch_related("sender", "receiver").order_by('-created_at')
+    else:
+        note_obj = Notification.objects.filter(sender=request.user).prefetch_related("sender", "receiver").order_by('-created_at')
+    
+    notes = [{
+            "id": note.id,
+            "subject": note.subject,
+            "message": note.message,
+            "sender": note.sender.email,
+            "receivers": list(note.receiver.values_list("email", flat=True)),
+            "created_at": note.created_at
+        } for note in note_obj]
+    return render(request, 'notifications.html', {'notes':notes, 'users':u_emails})
+
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+def delete_note(request, note_id):
+    """ delete perticuler notification """
+
+    if not note_id:
+        messages.error(request, "Notification id is required.")
+    else:
+        if request.user.is_superuser or request.user.is_staff:
+            note = Notification.objects.filter(id=note_id).first()
+        else:
+            note = Notification.objects.filter(id=note_id, sender=request.user).first()
+        
+        if note:
+            note.delete()
+            messages.success(request, "Notification deleted successfully.")
+        else:
+            messages.error(request, "Notification not found.")
+        return redirect('notifications')
+
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+def getReceiveNotifications(request):
+    """ fetch all notifications of logged in user """
+    seen_count = 0
+    unseen_count = 0
+    notes = (
+        Notification.objects.filter(receiver=request.user)
+        .annotate(is_seen=Exists(
+            SeenNotification.objects.filter(
+                note=OuterRef('pk'),
+                seen_by=request.user
+            )
+        )).order_by('-created_at')
+        .values('id', 'subject', 'message', 'sender__email', 'sender__username', 'sender__profile_img', 'is_seen', 'created_at')
+    )
+    if notes.exists():
+        n = [{
+            "id": note['id'],
+            "subject": note['subject'],
+            "message": note['message'],
+            "sender_email": note['sender__email'],
+            "sender_username": note['sender__username'],
+            'sender_profile_img': note['sender__profile_img'] if note['sender__profile_img'] else None,
+            "is_seen": note['is_seen'],
+            "created_at": note['created_at'].strftime("%d-%M-%Y")
+
+        } for note in notes ]
+    return JsonResponse({'notes':n}, status=200)
+        
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+def markSeenNotification(request, note_id):
+    if note_id:
+        note = Notification.objects.filter(id=note_id, receiver=request.user).first()
+        if note:
+            seen_note, created = SeenNotification.objects.get_or_create(
+                note=note,
+                seen_by=request.user,
+            )
+            if created:
+                return JsonResponse({'marked': True}, status=200)
+            else:
+                return JsonResponse({'marked': False}, status=200)
+        else:
+            return JsonResponse({'message': 'Notification not found.'}, status=404)
+    else:
+        return JsonResponse({'message': 'Bad request.'}, status=400)
 
 
 @login_required(login_url='login')
 def check_unique(request):
-    """ check email or username is unique or not """
+    """ check email or username is unique or not for user creation form """
 
     if request.method == 'GET':
         field = request.GET.get('field')
         value = request.GET.get('value')
+        exists = None
+        message = None
+
         if field == 'email':
-            exists = User.objects.filter(email=value).exists()
-            
+            exists = User.objects.filter(email=value).exists()  
         elif field == 'username':
             exists = User.objects.filter(username=value).exists()
-        else:
-            exists = None
-
-        if exists != None:
-            message = f"{field} is not available" if exists == True else f"{field} is available"
-        else:
-            message = None
-        return JsonResponse({'exists':exists, 'message':message})
+        
+        message = f"{field} is not available" if exists == True else f"{field} is available"
+        return JsonResponse({'exists':exists, 'message':message}, status=200)
     return HttpResponseBadRequest()
 
 
@@ -839,7 +966,7 @@ def get_users(request):
             )
         elif request.user.is_admin or request.user.is_admin_staff:
             users = x(
-                User.objects.filter(is_active=True, clinic=request.user.clinic_id)
+                User.objects.filter(Q(is_superuser=True) | Q(is_staff=True) | (Q(clinic=request.user.clinic_id)), is_active=True)
                 .exclude(id=request.user.id)
                 .values_list('email',)
             )
@@ -867,123 +994,3 @@ def get_users(request):
 # }
 
 # getData();
-
-
-@require_http_methods(["GET", "POST", "DELETE"])
-@login_required(login_url='login')
-def notes(request, note_id=None):
-    u_emails = []
-    if request.user.is_superuser or request.user.is_staff:
-        u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
-    elif request.user.is_admin or request.user.is_admin_staff:
-        u_emails = User.objects.filter(is_active=True, clinic=request.user.clinic_id).exclude(id=request.user.id).values_list('email', flat=True)
-
-    if request.method == 'POST':
-        subject = request.POST.get('subject','')
-        message = request.POST.get('message','')
-        recipients = request.POST.getlist('recipients', [])
-        
-        if not subject or not message or not recipients:
-            messages.error(request, "All fields are required.")
-            return render(request, 'notifications.html', {'notes':notes, 'users':u_emails})
-        
-        recipients = [r.strip().lower() for r in recipients]
-        if request.user.email in recipients:
-            recipients.remove(request.user.email)
-        
-        if request.user.is_admin or request.user.is_admin_staff:
-            receiver = User.objects.filter(email__in=recipients, clinic=request.user.clinic_id, is_active=True)
-        elif request:
-            receiver = User.objects.filter(email__in=recipients, is_active=True)
-
-        note = Notification.objects.create(
-            sender = request.user,
-            subject = subject,
-            message = message
-        )
-        note.receiver.set(receiver)
-        note.save()
-        messages.success(request, "Notification sent successfully.")
-
-    elif request.method == 'DELETE':
-        if note_id:
-            if request.user.is_superuser or request.user.is_staff:
-                note = Notification.objects.filter(id=note_id).first()
-            else:
-                note = Notification.objects.filter(id=note_id, sender=request.user).first()
-            if note:
-                note.delete()
-                messages.success(request, "Notification deleted successfully.")
-            else:
-                messages.error(request, "Notification not found.")
-        else:
-            message.error(request, "Notification id is required.")
-
-    if request.user.is_superuser or request.user.is_staff:
-        note_obj = Notification.objects.all().order_by('-created_at')
-    else:
-        note_obj = Notification.objects.filter(sender=request.user).prefetch_related("receiver").order_by('-created_at')
-    
-    notes = [{
-                "id": note.id,
-                "subject": note.subject,
-                "message": note.message,
-                "receivers": list(note.receiver.values_list("email", flat=True))
-            } for note in note_obj]
-    return render(request, 'notifications.html', {'notes':notes, 'users':u_emails})
-
-
-def getNotifications(request):
-    pass
-    # notes = (
-        #     Notification.objects.filter(receiver=request.user)
-        #     .annotate(is_seen=Exists(
-        #         SeenNotification.object.filter(
-        #             note=OuterRef('pk'),
-        #             seen_by=request.user
-        #         )
-        #     )).order_by('-created_at')
-        # )
-        # if not notes.exists():
-        #     seen_count = 0
-        #     unseen_count = 0
-        # else:
-        #     seen_count = notes.filter(is_seen=True).count()
-        #     unseen_count = notes.filter(is_seen=False).count()
-
-        # return JsonResponse({
-        #     'notes':notes,
-        #     'seen_count': seen_count,
-        #     'unseen_count': unseen_count
-        #     }, status=200)
-
-@require_http_methods(['GET'])
-@login_required(login_url='login')
-def markSeenNotification(request, note_id):
-    if note_id:
-        note = Notification.objects.filter(id=note_id, receiver=request.user).first()
-        if note:
-            seen_note, created = SeenNotification.objects.get_or_create(
-                note=note,
-                seen_by=request.user,
-            )
-            if created:
-                return JsonResponse({'marked': True}, status=200)
-            else:
-                return JsonResponse({'marked': False}, status=200)
-        else:
-            return JsonResponse({'message': 'Notification not found.'}, status=404)
-    else:
-        return JsonResponse({'message': 'Bad request.'}, status=400)
-            
-    # if request.method == 'POST':
-    #     note = get_object_or_404(Notification, id=note_id, receiver=request.user)
-    #     seen_note, created = SeenNotification.objects.get_or_create(
-    #         note=note,
-    #         seen_by=request.user
-    #     )
-    #     if created:
-    #         return JsonResponse({'message': 'Notification marked as seen.'}, status=200)
-    #     else:
-    #         return JsonResponse({'message': 'Notification was already marked as seen.'}, status=200)
-    # return JsonResponse({'message': 'Invalid request method.'}, status=400)
