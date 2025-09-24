@@ -42,7 +42,7 @@
                         <td>{{user.first_name}}</td>
                         <td>{{user.last_name}}</td>
                         <td>{{user.email}}</td>
-                        <td>{{user.date_joined}}</td>
+                        <td>{{user.date_joined|date:"d-b-Y"}}</td>
                         <td>{{user.clinic.name}}</td>
                         <td>
                             <form class="user_activation_form" method="POST" action="{% url 'update_user_status' %}">

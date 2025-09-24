@@ -205,7 +205,7 @@ class Notification(models.Model):
     sender  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_notes', null=False, blank=False)
     receiver= models.ManyToManyField(User, related_name='received_notes',)
     subject = models.CharField(max_length=250, blank=False, null=False)
-    message = models.TextField(blank=True, null=True)
+    # message = models.TextField(blank=True, null=True)
     
     created_at= models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -217,8 +217,7 @@ class Notification(models.Model):
 class SeenNotification(models.Model):
     note = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name='seen_notes')
     seen_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    seen = models.BooleanField(default=True)   # since row means "seen"
-    seen_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     class Meta:
         unique_together = ('note', 'seen_by')  # prevent duplicates

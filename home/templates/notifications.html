@@ -16,8 +16,8 @@
                   <table class="table table-bordered ctb">
                     <thead class="" style="position: sticky; top: 0; z-index: 500;">
                       <tr>
-                        <th scope="col">Subject <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
-                        <th scope="col">Nessage <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+                        {% comment %} <th scope="col">Subject</th> {% endcomment %}
+                        <th scope="col">Message</th>
                         {% if request.user.is_superuser or request.user.is_staff %}
                         <th scope="col">Sender <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
                         {% endif %}
@@ -31,7 +31,7 @@
                      {% for note in notes %}
                       <tr class="">
                         <td>{{note.subject}}</td>
-                        <td>{{note.message}}</td>
+                        {% comment %} <td>{{note.message}}</td> {% endcomment %}
                         {% if request.user.is_superuser or request.user.is_staff %}
                         <td>{{ note.sender }}</td>
                         {% endif %}
@@ -81,7 +81,7 @@
                         <div class="modal-content">
                             <div class="modal-header custome-m-dark">
                                 <h5 class="modal-title" id="notificationModalLabel">Send Notification</h5>
-                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">X</button>
+                                <button type="button" class="cnav-btn" data-dismiss="modal" aria-label="Close" title="Minimize"><i class="fa fa-minus"></i></button>
                             </div>
                             <div class="modal-body">
                                 <form method="POST" action="{% url 'notifications' %}">
@@ -99,14 +99,21 @@
                                             .map(option => option.value); 
                                         {% endcomment %}
                                     </div>
-                                    <div class="mb-3">
+                                    {% comment %} <div class="mb-3">
                                         <label for="subject" class="form-label">Subject</label>
                                         <input type="text" class="form-control" id="subject" name="subject" required>
-                                    </div>
+                                    </div> {% endcomment %}
                                     <div class="mb-3">
                                         <label for="message" class="form-label">Message</label>
-                                        <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
+                                        <textarea class="form-control" name="subject" id="subject" rows="3" maxlength=250 required></textarea>
+                                        <div class="form-text">
+                                            <span id="msgCharCount">0</span>/250 characters
+                                        </div>
                                     </div>
+                                    {% comment %} <div class="mb-3">
+                                        <label for="message" class="form-label">Message</label>
+                                        <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
+                                    </div> {% endcomment %}
                                     <div class="modal-footer">
                                         <button type="button" class="btn cb" data-dismiss="modal">Close</button>
                                         <button type="submit" class="btn cb">Send Notification</button>
@@ -119,6 +126,7 @@
 
                 <script>
                     let usernameTimeout;
+
                     function checkUnique(element){
                         clearTimeout(usernameTimeout);
                         let field = null;
@@ -201,6 +209,14 @@
                     }
 
                     document.addEventListener("DOMContentLoaded", function(){
+                        // Character count for message
+                        const textarea = document.getElementById("subject");
+                        const charCount = document.getElementById("msgCharCount");
+                        textarea.addEventListener("input", function () {
+                            charCount.textContent = this.value.length;
+                        });
+
+                        // Initialize Bootstrap tooltips for recipient list
                         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
                         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                         return new bootstrap.Tooltip(tooltipTriggerEl)
@@ -212,5 +228,8 @@
                         console.log(deleteUrl)
                         document.getElementById("confirmDeleteBtn").href = deleteUrl;
                     }
+                    
+                    
+
                 </script>
             {% endblock %}

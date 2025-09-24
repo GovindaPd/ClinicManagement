@@ -4,7 +4,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -15,10 +14,8 @@
 
     <!-- Custom fonts for this template-->
     <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+        
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
@@ -34,6 +31,19 @@
         /* Firefox */
         input[type=number] {
         -moz-appearance: textfield;
+        }
+
+        #messagesDropdownDiv {
+            max-height: 400px;
+            overflow-y: auto;
+
+            /* Hide scrollbar for Chrome, Edge, Safari */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE 10+ */
+        }
+
+        #messagesDropdownDiv::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Edge */
         }
 
         i.cstm-sort:hover, i.cstm-sort:focus{
@@ -327,9 +337,9 @@
 
             <!-- Sidebar Message -->
             <div class="sidebar-card d-none d-lg-flex">
-                <img class="sidebar-card-illustration mb-2" src="img/undraw_rocket.svg" alt="...">
+                <img class="sidebar-card-illustration mb-2" src="{% static "/img/profile.jfif" %}" alt="developer profile">
                 <p class="text-center mb-2"><strong>Developed By</strong> Govinda prasad govinda@singhsoft.com</p>
-                <a class="btn btn-success btn-sm" href="#">Contact Us</a>
+                <a class="btn btn-success btn-sm" href="mailto:govinda@singhsoft.com">Contact Us</a>
             </div>
 
         </ul>
@@ -441,9 +451,10 @@
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" id="messagesDropdownDiv"
-                                aria-labelledby="messagesDropdown" style="max-height: 400px; overflow-y: auto;">
+                                aria-labelledby="messagesDropdown" style="max-height: 400px; overflow-y: auto;" data-bs-auto-close="false">
                                 <h6 class="dropdown-header box-background-border-dark" style="position: sticky; top: 0; z-index: 600;">
                                     Message Center
+                                    <button id="minimizeDropdown" class="cnav-btn float-right" title="Minimize"><i class="fa fa-minus"></i></button>
                                 </h6>
                                 {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
@@ -486,7 +497,7 @@
                             </div>
                         </li>
 
-                        {% comment %} #<div class="topbar-divider d-none d-sm-block"></div> {% endcomment %}
+                        {% comment %} <div class="topbar-divider d-none d-sm-block"></div> {% endcomment %}
 
                         <!-- Nav Item - User Information -->
                         <li class="nav-item dropdown no-arrow">
@@ -596,25 +607,26 @@
     </div>
     <!-- end Logout Modal-->
 
+
     <!-- Bootstrap core JavaScript-->
     <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-
     <!-- Core plugin JavaScript-->
     <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
-
     <!-- Custom scripts for all pages-->
     <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
-
+    
+    {% if load_chart_js %}
     <!-- Page level plugins -->
     <script src="{% static 'vendor/chart.js/Chart.min.js' %}"></script>
-
     <!-- Page level custom scripts -->
     <script src="{% static 'js/demo/chart-area-demo.js' %}"></script>
     <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script>
+    {% endif %}
 
     <script>
-        var note = false;
+        var notes_fatched = false;
+        // search function for table
         document.getElementById("search-bar").addEventListener("keyup", function() {
             let filter = this.value.toLowerCase();
             let rows = document.querySelectorAll("table tbody tr");
@@ -660,45 +672,108 @@
             })
             // re-append sorted rows
             rows.forEach(row => tbody.appendChild(row));
-
             // toggle state
             nameSortAsc = !nameSortAsc;
         }
 
+        // fetch receive notifications
         function fetchNotifications(){
-            if (note) return; // If notifications are already fetched, do nothing
+            if (notes_fatched) return;
             let messagesDiv = document.getElementById('messagesDropdownDiv');
             let message_string = '';
             let img = '';
+            
             fetch('/get-receive-notifications/')
             .then(response => response.json())
             .then(data => {
-                console.log(data);
                 for (let note of data.notes){
+                    let is_seen = note.is_seen ? "" : "font-weight-bold";
                     if (note.sender_profile_img){
                         img = `<img class="rounded-circle" src="/media/${note.sender_profile_img}" alt="sender profile image">`
                     }
                     else{
-                        img = `<div class="img-profile rounded-circle user-face" title="${note.sender_username}" style="hight:30px; width:30px;">
+                        img = `<div class="rounded-circle user-face" title="${note.sender_username}" style="width:2.5rem; height:2.5rem; display:flex; justify-content:center; align-items:center;">
                             ${note.sender_username.charAt(0).toUpperCase()}
                         </div>`
                     }
-                    message_string = message_string + `<a class="dropdown-item d-flex align-items-center" href="#">
+                    message_string = message_string + 
+                                `<a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">${img}</div>
-                                    </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">${note.subject}</div>
+                                    <div class="${is_seen}">
+                                        <div class="text-truncate" data-id=${note.id} data-seen="${is_seen.toString()}" onclick="seeNotification(this)">${note.subject}</div>
                                         <div class="small text-gray-500">${note.sender_username} - ${note.created_at}</div>
                                     </div>
                                 </a>`
                 }
-                console.log("4-----")
                 messagesDiv.insertAdjacentHTML('beforeend', message_string);
-                note = true;
-                console.log("5-----")
+                notes_fatched = true;
             })
             .catch(error => console.error('Error fetching notifications:', error));
         }
+        
+        // mark notification as seen
+        function seeNotification(element){          
+            // show complete notification
+            if (element.classList.contains("text-truncate")){
+                element.classList.remove("text-truncate");
+                if (element.innerText.length >= 50){
+                    element.insertAdjacentHTML(
+                        "afterend", 
+                        `<span 
+                            style="color:gray; cursor:pointer; text-decoration:underline;" 
+                            onmouseover="this.style.color='black'" 
+                            onmouseout="this.style.color='gray'" 
+                            onclick="this.previousElementSibling.classList.add('text-truncate'); this.remove();">
+                            see less
+                        </span>`
+                    );
+                };
+            }
+            
+            let noteId = element.getAttribute('data-id');
+            let notificationSeen = element.getAttribute('data-seen');
+            
+            if(notificationSeen == 'true'){
+                return; 
+            }
+            else{
+                element.style.fontWeight = 'normal';
+                fetch(`/mark-as-seen/${noteId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // reduce the number of unread notifications
+                    let badge = document.querySelector('a#messagesDropdown .badge-counter');
+                    if (badge != undefined){
+                        let count = parseInt(badge.textContent);
+                        if (count > 1){
+                            badge.textContent = count - 1;
+                        }
+                        else{
+                            badge.remove();
+                        }
+                    }
+                })
+                .catch(error => console.error('Error marking notification as read:', error));
+            }
+        }
+
+        // dropdown auto close disable and minimize button function
+        document.addEventListener("DOMContentLoaded", function() {
+            const dropdownDiv = document.getElementById("messagesDropdownDiv");
+            const minimizeBtn = document.getElementById("minimizeDropdown");
+
+            // Disable auto-close when clicking inside the dropdown
+            dropdownDiv.addEventListener("click", function(e){
+                e.stopPropagation();
+            });
+
+            // Minimize button click
+            minimizeBtn.addEventListener("click", function(e){
+                e.stopPropagation(); // Prevent parent toggle
+                dropdownDiv.classList.remove("show"); // hide dropdown
+                document.getElementById("messagesDropdown").classList.remove("show");
+            });
+        });
     </script>
 
 </body>

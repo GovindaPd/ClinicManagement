@@ -43,7 +43,7 @@
                         <td>{{patient.number}}</td>
                         <td>{{patient.address}}</td>
                         <td>{{patient.medical_history}}</td>
-                        <td>{{patient.created_at}}</td>
+                        <td>{{patient.created_at|date:"d-b-Y"}}</td>
                         <td style="">
                           <a href="{% url 'add_patient_visit' patient_id=patient.id %}" class="action-links create" title="Add Visit" style="margin-right:8px;">
                             <i class="fas fa-plus"></i>

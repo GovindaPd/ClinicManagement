@@ -63,15 +63,8 @@ def state_cities(request, region=None):
         return JsonResponse({'cities':serializer.data}, status=200)
     else:
         return JsonResponse({'cities':[]}, status=200)
-      
 
-@login_required(login_url='login')
-def index(request):
-    if request.method == 'GET':
-        return render(request, 'index.html')
-    
 
-#admin123
 @require_http_methods(["GET", "POST"])
 def login_in(request):
     """ login user """
@@ -115,6 +108,14 @@ def login_in(request):
         
         return redirect('home')
 
+
+@require_http_methods(["GET"])
+@login_required(login_url='login')
+def index(request):
+    """dashboard view """
+    if request.method == 'GET':
+        return render(request, 'index.html', {'load_chart_js': True})
+    
 
 @require_http_methods(["GET"])
 @login_required(login_url='login')
@@ -344,13 +345,7 @@ def add_user(request):
             )
         messages.success(request, f"{user.username} account has been created successfully. Default password is {default_password!r}")
         return redirect('all_users')  
-        # message = f"Welcome to {clinic.name}! We’re excited to have you on board and look forward to the amazing impact you’ll bring to our team and patients. 
-        # Wishing you success in this new journey! ✨"
-        #     noti = Notifications.objects.create(
-        #     from_user = from_user,
-        #     to        = to,
-        #     message   = message                             
-        # )   
+  
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
@@ -818,10 +813,10 @@ def notes(request, note_id=None):
 
     if request.method == 'POST':
         subject = request.POST.get('subject','')
-        message = request.POST.get('message','')
         recipients = request.POST.getlist('recipients', [])
+        # message = request.POST.get('message','')
 
-        if subject and message and recipients:
+        if subject and recipients:
             recipients = [ r.strip().lower() for r in recipients ]
             
             if request.user.email in recipients:
@@ -836,7 +831,7 @@ def notes(request, note_id=None):
             note = Notification.objects.create(
                 sender = request.user,
                 subject = subject,
-                message = message
+                # message = message
             )
             note.receiver.set(receiver)
             note.save()
@@ -853,7 +848,7 @@ def notes(request, note_id=None):
     notes = [{
             "id": note.id,
             "subject": note.subject,
-            "message": note.message,
+            # "message": note.message,
             "sender": note.sender.email,
             "receivers": list(note.receiver.values_list("email", flat=True)),
             "created_at": note.created_at
@@ -896,18 +891,18 @@ def getReceiveNotifications(request):
                 seen_by=request.user
             )
         )).order_by('-created_at')
-        .values('id', 'subject', 'message', 'sender__email', 'sender__username', 'sender__profile_img', 'is_seen', 'created_at')
+        .values('id', 'subject', 'sender__email', 'sender__username', 'sender__profile_img', 'is_seen', 'created_at')
     )
     if notes.exists():
         n = [{
             "id": note['id'],
             "subject": note['subject'],
-            "message": note['message'],
+            # "message": note['message'],
             "sender_email": note['sender__email'],
             "sender_username": note['sender__username'],
             'sender_profile_img': note['sender__profile_img'] if note['sender__profile_img'] else None,
             "is_seen": note['is_seen'],
-            "created_at": note['created_at'].strftime("%d-%M-%Y")
+            "created_at": note['created_at'].strftime("%d-%b-%Y")
 
         } for note in notes ]
     return JsonResponse({'notes':n}, status=200)
@@ -917,16 +912,16 @@ def getReceiveNotifications(request):
 @login_required(login_url='login')
 def markSeenNotification(request, note_id):
     if note_id:
-        note = Notification.objects.filter(id=note_id, receiver=request.user).first()
-        if note:
+        notification = Notification.objects.filter(id=note_id, receiver=request.user).first()
+        if notification:
             seen_note, created = SeenNotification.objects.get_or_create(
-                note=note,
+                note=notification,
                 seen_by=request.user,
             )
             if created:
-                return JsonResponse({'marked': True}, status=200)
+                return JsonResponse({'marked': True, 'message': "success"}, status=200)
             else:
-                return JsonResponse({'marked': False}, status=200)
+                return JsonResponse({'marked': False, 'message': "allredy marked"}, status=200)
         else:
             return JsonResponse({'message': 'Notification not found.'}, status=404)
     else:

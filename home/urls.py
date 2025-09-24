@@ -19,7 +19,7 @@ urlpatterns = [
     path('patients/', views.patients, name='patients'),
     
     path('add-user/', views.add_user, name="add_user"),
-    path('edit-user/<str:user_id>', views.edit_user, name="edit_user"),
+    path('edit-user/<str:user_id>/', views.edit_user, name="edit_user"),
     path('update-status/', views.update_user_status, name="update_user_status"),
     path('add-new-patient/', views.add_new_patient, name='add_new_patient'),
     path('patient-details/<int:patient_id>/', views.patient_details, name='patient_details'),
@@ -37,6 +37,7 @@ urlpatterns = [
     path('notifications/', views.notes, name='notifications'),
     path('get-receive-notifications/', views.getReceiveNotifications, name='get_receive_notifications'),
     path('delete-notification/<int:note_id>/', views.delete_note, name='delete_notification'),
+    path('mark-as-seen/<int:note_id>/', views.markSeenNotification, name='mark_as_seen'),
     
     path('staffs/', views.get_users, name='get_users'),
     path('check-unique/', views.check_unique, name="check_unique"),
