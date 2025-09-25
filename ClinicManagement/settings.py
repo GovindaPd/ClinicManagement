@@ -95,11 +95,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-#CITIES_LIGHT_TRANSLATION_LANGUAGES = ['en', 'es']
+#pip install django-cities-light
+CITIES_LIGHT_TRANSLATION_LANGUAGES = ['en',]
 CITIES_LIGHT_INCLUDE_COUNTRIES = ['IN',]
 # populate data in model 
-# python manage.py cities_light
-
+# python manage.py cities_light # on linux
+# python manage.py cities_light_data # on windows
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 

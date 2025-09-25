@@ -31,6 +31,9 @@ from urllib.parse import urlparse
 # referer = request.META.get('HTTP_REFERER')
 # url_name = get_url_name(referer)
 
+forbidden_message = """You do not have permission to access this resource.
+    Please check that you have the correct credentials or contact the site administrator if you believe this is an error."""
+
 def generate_otp():
     otp = randint(100000,999999)
     return otp
@@ -48,12 +51,10 @@ def get_url_name(full_url):
     else:
         return None
 
-
 def country_states(request):
     state = Region.objects.filter(country=1).order_by('name')
     serializer = RegionSerializers(state, many=True)
     return JsonResponse({'region':serializer.data}, status=200)
-
 
 def state_cities(request, region=None):
     if region:
@@ -65,6 +66,7 @@ def state_cities(request, region=None):
         return JsonResponse({'cities':[]}, status=200)
 
 
+# -------------- views start here -----------------
 @require_http_methods(["GET", "POST"])
 def login_in(request):
     """ login user """
@@ -169,7 +171,6 @@ def password_reset_confirm(request, uid64, token):
     user = get_object_or_404(User, custom_id=user_id)
 
     validated_token = TokenGenerator.validate_token(token)
-    
     if validated_token:
         if TokenGenerator.compare_token(user, validated_token):
             if request.method == "POST":
@@ -180,10 +181,8 @@ def password_reset_confirm(request, uid64, token):
                     messages.success(request, "Password changed successfully")
                     return redirect("login")
                 messages.error(request, "Invalid Password")
-
             return render(request, "password_reset_confirm.html")
-        
-        # if token comparission is failed
+
     messages.error(request, "Link has been expired")
     return redirect('password_reset')
 
@@ -211,31 +210,30 @@ def change_user_password(request):
         return redirect('change_user_password')
 
 
-
+@require_http_methods(["GET"])
 @login_required(login_url='login')
 def all_users(request):
     if request.method == 'GET':
+        users = User.objects.none()
         if request.user.is_superuser:
             users = User.objects.exclude(username=request.user.username)
         elif request.user.is_admin:
             clinic = request.user.clinic
             if clinic:
-                users = User.objects.filter(clinic=clinic)
+                users = User.objects.filter(clinic=clinic).exclude(username=request.user.username)
             else:
                 users = None
+        else:
+            return HttpResponseForbidden(forbidden_message)
+        
         return render(request, 'user_list.html', {'users':users})
-    
-    return HttpResponseBadRequest()
 
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
 def add_user(request):
     if not any([request.user.is_superuser, request.user.is_admin]):
-        message = """You do not have permission to access this resource.
-
-        Please check that you have the correct credentials or contact the site administrator if you believe this is an error."""
-        return HttpResponseForbidden(message)
+        return HttpResponseForbidden(forbidden_message)
     
     if request.method == 'GET':
         if request.user.is_superuser:
@@ -249,7 +247,6 @@ def add_user(request):
     
     if request.method == 'POST':
         is_admin = False
-        is_staff = False
         is_admin_staff = False
         default_password = "temp@1234"
 
@@ -258,17 +255,17 @@ def add_user(request):
         first_name = request.POST.get('first_name','')
         last_name = request.POST.get('last_name','')
         user_type = request.POST.get('user_type','')
-        clinic = request.POST.get('clinic', None)
+        user_clinic = request.POST.get('clinic', None)
         
-        if clinic:
-            cl = Clinic.objects.filter(id=clinic)
+        clinic = Clinic.objects.none()
+        clinic_exists = False
+        
+        if user_clinic:
+            cl = Clinic.objects.filter(id=user_clinic)
             if cl.exists():
                 clinic = cl.first()
                 clinic_exists = True
-        else:
-            clinic = None
-            clinic_exists = False
-        # superuser setting
+        
         if request.user.is_superuser:
             if user_type == 'admin':
                 is_admin = True
@@ -277,13 +274,9 @@ def add_user(request):
                 if not clinic_exists:
                     messages.error(request, "You do not have selected any clinic.")
                     return redirect('all_users')
-            elif user_type=="is_staff":
-                is_staff = True
             else:
-                messages.error("user type is not defined")
+                messages.error(request, "user type is not defined")
                 return redirect('all_users')
-        
-        #admin settings
         elif request.user.is_admin:
             is_admin_staff = True
             if not clinic_exists:
@@ -302,7 +295,6 @@ def add_user(request):
                 clinic      = clinic,
                 password    = default_password,
                 is_admin    = is_admin,
-                is_staff    = is_staff,
                 is_admin_staff= is_admin_staff
             )
         except IntegrityError as e:
@@ -320,43 +312,129 @@ def add_user(request):
        
         if request.user.is_superuser:
             if user.is_admin:
-                send_mail(
-                    admin_welcome_subject,
-                    admin_welcome_mail.format(username, company_name, company_name),
-                    settings.DEFAULT_FROM_EMAIL, 
-                    [email], 
-                    fail_silently=True
-                )
+                subject = admin_welcome_subject
+                message = admin_welcome_mail.format(username, company_name, company_name),
             elif user.is_admin_staff:
-                send_mail(
-                    admin_staff_welcome_subject.format(clinic.name),
-                    admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
-                    settings.DEFAULT_FROM_EMAIL, 
-                    [email], 
-                    fail_silently=True
-                )
+                subject = admin_staff_welcome_subject.format(clinic.name),
+                message = admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
         elif request.user.is_admin:
-            send_mail(
-                admin_staff_welcome_subject.format(clinic.name),
-                admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
-                settings.DEFAULT_FROM_EMAIL, 
-                [email], 
-                fail_silently=True
-            )
+            subject = admin_staff_welcome_subject.format(clinic.name),
+            message = admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
+        else:
+            subject = "Welcome to {}".format(company_name)
+            message = "Your account has been created successfully. Please contact site administrator for login details."
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email], 
+            fail_silently=True
+        )
         messages.success(request, f"{user.username} account has been created successfully. Default password is {default_password!r}")
-        return redirect('all_users')  
+        return redirect('all_users') 
   
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
 def edit_user(request, user_id):
+    user = User.objects.none()
+    clinics = Clinic.objects.none()
+
     if request.method == "GET":
-        return render(request, 'edit_user.html')
+        if request.user.is_superuser:
+            user = User.objects.filter(custom_id=user_id).first()
+            clinics = Clinic.objects.all().values_list('id','name')
+        elif request.user.is_admin:
+            if not request.user.clinic:
+                messages.error(request, "You do not have registerd clinic details")
+                return redirect('all_users')
+            user = User.objects.filter(custom_id=user_id, clinic=request.user.clinic_id).first()
+            clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
+        else:
+            return HttpResponseForbidden(forbidden_message)
+        
+        if not user:
+            messages.error(request, "User not found with given id.")
+            return redirect('all_users')
+
+        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics})
     
-    if not any([request.user.is_superuser, request.user.is_admin]):
-        return HttpResponseForbidden(f"{request.user.is_superuser=} or {request.user.is_admin=}")
-# if clinics:
-#     user.objects.filter(Clinics__in=clinics)
+    if request.method == 'POST':
+        if request.user.is_superuser:
+            user = User.objects.filter(custom_id=user_id).first()
+        elif request.user.is_admin:
+            if not request.user.clinic:
+                messages.error(request, "You do not have registerd clinic details")
+                return redirect('all_users')
+            user = User.objects.filter(custom_id=user_id, clinic=request.user.clinic_id).first()
+        else:
+            return HttpResponseForbidden(forbidden_message)
+        
+        if not user:
+            messages.error(request, "User not found with given id.")
+            return redirect('all_users')
+            
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name','')
+        last_name = request.POST.get('last_name','')
+        user_type = request.POST.get('user_type','')
+        user_clinic = request.POST.get('clinic', None)
+        
+        clinic = Clinic.objects.none()
+        clinic_exists = False
+
+        if user_clinic:
+            cl = Clinic.objects.filter(id=user_clinic)
+            if cl.exists():
+                clinic = cl.first()
+                clinic_exists = True            
+            
+        if request.user.is_superuser:
+            if user_type == 'admin':
+                user.is_admin = True
+                user.is_admin_staff = False
+            elif user_type == 'is_admin_staff':
+                user.is_admin = False
+                user.is_admin_staff = True
+                if not clinic_exists:
+                    messages.error(request, "You do not have selected any clinic.")
+                    return redirect('all_users')
+            else:
+                messages.error(request, "user type is not defined")
+                return redirect('all_users')
+        elif request.user.is_admin:
+            user.is_admin_staff = True
+            if not clinic_exists:
+                messages.error(request, "You do not have selected any clinic.") 
+                return redirect('all_users')
+        else:
+            messages.error(request, "You do not have permission to add staff.")
+            return redirect('all_users')
+        user.username = username
+        user.email = email
+        user.first_name = first_name
+        user.last_name = last_name
+        user.clinic = clinic
+        try:
+            user.save()
+        except IntegrityError as e:
+            messages.error(request, "Error with form data insertion.")
+            return redirect('edit_user', user_id=user_id)
+        except ValidationError as ve:
+            messages.error(request, "Error with form data validation.")
+            return redirect('add_user')
+        except OperationalError:
+            messages.error(request, "Database server being down or unreachable. Please try again later.")
+            return redirect('add_user')
+        except ValueError:
+            messages.error(request, "Form values are required.")
+            return redirect('add_user')
+        
+        messages.success(request, f"{user.username} account has been updated successfully.")
+        return redirect('all_users')
+
 
 @login_required(login_url='login')
 def update_user_status(request):
@@ -632,8 +710,6 @@ def patient_details(request, patient_id):
 
         if request.user.is_superuser:
             patient = Patient.objects.filter(id=patient_id).first()
-        elif request.user.is_staff:
-            patient = Patient.objects.filter(id=patient_id).first()
         elif request.user.is_admin:
             patient = Patient.objects.filter(id=patient_id, clinic=request.user.clinic_id).first()
         elif request.user.is_admin_staff:
@@ -744,7 +820,7 @@ def edit_patient_visit(request, patient_id, visit_id):
             paid_amount = abs(int(paid_amount))
             pending_amount= amount - paid_amount
         except ValueError:
-            messages.error("amount value is not integer")
+            messages.error(request, "amount value is not integer")
             return redirect('patient_details', patient_id=patient_id)
         
         if amount == paid_amount:
@@ -786,7 +862,7 @@ def delete_patient_visit(request, patient_id, visit_id):
     clinic = request.user.clinic
     doctor = request.user
     
-    if request.user.is_superuser or request.user.is_staff:
+    if request.user.is_superuser:
         patient = get_object_or_404(Patient, id=patient_id)
     elif request.user.is_admin:
         patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)
@@ -805,10 +881,10 @@ def notes(request, note_id=None):
     """ send notification to users and view all notes """
 
     u_emails = []
-    if request.user.is_superuser or request.user.is_staff:
+    if request.user.is_superuser:
         u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
     elif request.user.is_admin or request.user.is_admin_staff:
-        u_emails = User.objects.filter(Q(is_superuser=True) | Q(is_staff=True) | (Q(clinic=request.user.clinic_id)), is_active=True).values_list('email', flat=True)
+        u_emails = User.objects.filter(Q(is_superuser=True) | (Q(clinic=request.user.clinic_id)), is_active=True).values_list('email', flat=True)
         # u_emails = User.objects.filter(is_active=True, clinic=request.user.clinic_id).exclude(id=request.user.id).values_list('email', flat=True)
 
     if request.method == 'POST':
@@ -822,10 +898,10 @@ def notes(request, note_id=None):
             if request.user.email in recipients:
                 recipients.remove(request.user.email)
 
-            if request.user.is_superuser or request.user.is_staff:
+            if request.user.is_superuser:
                 receiver = User.objects.filter(email__in=recipients, is_active=True)
             elif request.user.is_admin or request.user.is_admin_staff:
-                receiver = User.objects.filter(Q(is_superuser=True) | Q(is_staff=True) | (Q(clinic=request.user.clinic_id)), email__in=recipients, is_active=True)
+                receiver = User.objects.filter(Q(is_superuser=True) | (Q(clinic=request.user.clinic_id)), email__in=recipients, is_active=True)
                 # receiver = User.objects.filter(email__in=recipients, clinic=request.user.clinic_id, is_active=True)
             
             note = Notification.objects.create(
@@ -840,7 +916,7 @@ def notes(request, note_id=None):
             messages.error(request, "All fields are required.")
 
     # common for get and post method
-    if request.user.is_superuser or request.user.is_staff:
+    if request.user.is_superuser:
         note_obj = Notification.objects.all().prefetch_related("sender", "receiver").order_by('-created_at')
     else:
         note_obj = Notification.objects.filter(sender=request.user).prefetch_related("sender", "receiver").order_by('-created_at')
@@ -864,7 +940,7 @@ def delete_note(request, note_id):
     if not note_id:
         messages.error(request, "Notification id is required.")
     else:
-        if request.user.is_superuser or request.user.is_staff:
+        if request.user.is_superuser:
             note = Notification.objects.filter(id=note_id).first()
         else:
             note = Notification.objects.filter(id=note_id, sender=request.user).first()
@@ -953,7 +1029,7 @@ def get_users(request):
     if request.method == 'GET':
         x = lambda users: [user for user in users]
         users = []
-        if request.user.is_superuser or request.user.is_staff:
+        if request.user.is_superuser:
             users = x(   
                 User.objects.filter(is_active=True)
                 .exclude(id=request.user.id)
@@ -961,7 +1037,7 @@ def get_users(request):
             )
         elif request.user.is_admin or request.user.is_admin_staff:
             users = x(
-                User.objects.filter(Q(is_superuser=True) | Q(is_staff=True) | (Q(clinic=request.user.clinic_id)), is_active=True)
+                User.objects.filter(Q(is_superuser=True) | (Q(clinic=request.user.clinic_id)), is_active=True)
                 .exclude(id=request.user.id)
                 .values_list('email',)
             )

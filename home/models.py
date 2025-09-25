@@ -42,13 +42,10 @@ class CustomUserManager(UserManager):
         return user
     
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_admin', True)
         extra_fields.setdefault('is_password_reset', True)
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         if extra_fields.get('is_admin') is not True:
@@ -68,7 +65,6 @@ class User(AbstractUser):
     profile_img = models.ImageField(upload_to=rename_image, blank=True)
     phone       = models.CharField(validators=[indian_phone_regex], max_length=15, blank=True, null=True)
     is_superuser= models.BooleanField(default=False)
-    is_staff    = models.BooleanField(default=False)
     is_admin    = models.BooleanField(default=False)    # clinic admin
     is_admin_staff= models.BooleanField(default=False)    # clinic staff
     is_password_reset=models.BooleanField(default=False)
@@ -84,8 +80,6 @@ class User(AbstractUser):
             return "superuser"
         elif self.is_admin:
             return "admin"
-        elif self.is_staff:
-            return "superuser_staff"
         elif self.is_admin_staff:
             return "admin_staff"
         else:

@@ -5,8 +5,8 @@ from .models import *
 
 
 class CustomeUserAdmin(UserAdmin):
-    list_display = ('custom_id', 'clinic', 'username', 'email', 'is_superuser', 'is_admin', 'is_admin_staff', 'is_staff', 'is_active')
-    list_filter = ('is_superuser', 'is_admin', 'is_admin_staff', 'is_staff', 'is_active')
+    list_display = ('custom_id', 'clinic', 'username', 'email', 'is_superuser', 'is_admin', 'is_admin_staff', 'is_active')
+    list_filter = ('is_superuser', 'is_admin', 'is_admin_staff', 'is_active')
     search_fields = ('custom_id', 'clinic', 'username', 'eamil')
     readonly_fields = ('id', 'custom_id', 'date_joined', 'updated_at', 'last_login')
     ordering = ('date_joined',)
@@ -15,7 +15,7 @@ class CustomeUserAdmin(UserAdmin):
         (None, {'fields': ('username', 'password')}),
         (_('Personal Info'), {'fields': ('id', 'custom_id', 'first_name', 'last_name', 'email', 'phone',)}),
         (_('Additional Info'), {'fields': ('clinic', 'profile_img')}),
-        (_('Permissions'), {'fields': ('is_active', 'is_superuser', 'is_staff', 'is_admin', 'is_admin_staff', 'groups', 'user_permissions')}),
+        (_('Permissions'), {'fields': ('is_active', 'is_superuser', 'is_admin', 'is_admin_staff', 'groups', 'user_permissions')}),
         (_('Read Only Fields'), {'fields': ('last_login', 'date_joined', 'updated_at')})
     )
 
@@ -29,7 +29,7 @@ class CustomeUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'is_admin', 'is_admin_staff', 'is_staff', 'is_active', 'password1', 'password2'),
+            'fields': ('username', 'email', 'is_admin', 'is_admin_staff', 'is_active', 'password1', 'password2'),
         }),
     )
     
