@@ -11,7 +11,7 @@ from django.conf import settings
 from django.urls import resolve
 from django.db import transaction
 from django.db import OperationalError, IntegrityError
-from django.db.models import Count, Exists, OuterRef, F, Q
+from django.db.models import Count, Exists, OuterRef, F, Q, Sum
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 # from django.core.validators import V
@@ -116,7 +116,46 @@ def login_in(request):
 def index(request):
     """dashboard view """
     if request.method == 'GET':
-        return render(request, 'index.html', {'load_chart_js': True})
+        if request.user.is_superuser:
+            total_clinics = Clinic.objects.count()
+            total_staffs  = User.objects.count()
+            total_patients= Patient.objects.count()
+            # recent_patients = Patient.objects.all().order_by('-created_at')[:5]
+            context = {
+                'total_clinics': total_clinics,
+                'total_staffs' : total_staffs,
+                'total_patients': total_patients,
+                'load_chart_js': True
+                # 'total_doctors': total_doctors,
+                # 'recent_patients': recent_patients,
+            }        
+        elif request.user.is_admin:
+            total_staffs= User.objects.filter(clinic=request.user.clinic_id).count()
+            total_patients = Patient.objects.filter(clinic=request.user.clinic_id).count
+                
+            invoices = Invoice.objects.filter(
+                    prescription__patient__clinic=request.user.clinic_id
+                ).select_related('prescription')
+            total_pending_payments = invoices.filter(status__in=['Partial Paid', 'Pending']).count()
+
+            # prescription__visit_date__year=now().year
+            # aggregate(total=Sum('amount'))['total'] or 0
+            yearly_data = []
+            for invoice in invoices:
+                yearly_data.append((invoice.amount, invoice.prescription.visit_date))
+
+            context = {
+                'total_staffs' : total_staffs,
+                'total_patients': total_patients,
+                'total_pending_payments': total_pending_payments,
+                'yearly_data': yearly_data,
+                'load_chart_js': True
+            }
+        else:
+            context = {
+                'load_chart_js': True
+            }
+        return render(request, 'index.html', context)
     
 
 @require_http_methods(["GET"])
@@ -884,8 +923,7 @@ def notes(request, note_id=None):
     if request.user.is_superuser:
         u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
     elif request.user.is_admin or request.user.is_admin_staff:
-        u_emails = User.objects.filter(Q(is_superuser=True) | (Q(clinic=request.user.clinic_id)), is_active=True).values_list('email', flat=True)
-        # u_emails = User.objects.filter(is_active=True, clinic=request.user.clinic_id).exclude(id=request.user.id).values_list('email', flat=True)
+        u_emails = User.objects.filter(Q(is_superuser=True) | Q(clinic=request.user.clinic_id), is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
 
     if request.method == 'POST':
         subject = request.POST.get('subject','')
@@ -901,17 +939,19 @@ def notes(request, note_id=None):
             if request.user.is_superuser:
                 receiver = User.objects.filter(email__in=recipients, is_active=True)
             elif request.user.is_admin or request.user.is_admin_staff:
-                receiver = User.objects.filter(Q(is_superuser=True) | (Q(clinic=request.user.clinic_id)), email__in=recipients, is_active=True)
-                # receiver = User.objects.filter(email__in=recipients, clinic=request.user.clinic_id, is_active=True)
+                receiver = User.objects.filter(Q(is_superuser=True) | Q(clinic=request.user.clinic_id), email__in=recipients, is_active=True)
             
-            note = Notification.objects.create(
-                sender = request.user,
-                subject = subject,
-                # message = message
-            )
-            note.receiver.set(receiver)
-            note.save()
-            messages.success(request, "Notification sent successfully.")
+            if not receiver.count() == 0:
+                note = Notification.objects.create(
+                    sender = request.user,
+                    subject = subject,
+                    # message = message
+                )
+                note.receiver.set(receiver)
+                note.save()
+                messages.success(request, "Notification sent successfully.")
+            else:
+                messages.error(request, "No valid recipient found.")
         else:
             messages.error(request, "All fields are required.")
 
@@ -1037,7 +1077,7 @@ def get_users(request):
             )
         elif request.user.is_admin or request.user.is_admin_staff:
             users = x(
-                User.objects.filter(Q(is_superuser=True) | (Q(clinic=request.user.clinic_id)), is_active=True)
+                User.objects.filter(Q(is_superuser=True) | Q(clinic=request.user.clinic_id), is_active=True)
                 .exclude(id=request.user.id)
                 .values_list('email',)
             )

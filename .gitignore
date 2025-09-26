@@ -4,7 +4,8 @@ _pycache_
 .DS_Store
 *.DS_Store
 *migrations/
-# *.sqlite3
+*.sqlite3
+db.sqlite3
 debug-error.log
 home/google/credentials.json
 *media/
