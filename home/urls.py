@@ -28,6 +28,7 @@ urlpatterns = [
     
     path('add-patient-visit/<int:patient_id>/', views.add_patient_visit, name='add_patient_visit'),
     path('edit-patient-visit/<int:patient_id>/<int:visit_id>/', views.edit_patient_visit, name='edit_patient_visit'),
+    path('clear-pending-payment/<int:patient_id>/<int:visit_id>/', views.clear_pending_payment, name='clear_pending_payment'),
     path('delete-patient-visit/<int:patient_id>/<int:visit_id>/', views.delete_patient_visit, name='delete_patient_visit'),
     
     path('all-users/', views.all_users, name='all_users'),
@@ -41,6 +42,7 @@ urlpatterns = [
     
     path('staffs/', views.get_users, name='get_users'),
     path('check-unique/', views.check_unique, name="check_unique"),
+    path('demo/', views.demo)
 ]
 
 # from django.contrib.auth import views as auth_views

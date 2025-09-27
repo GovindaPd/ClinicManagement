@@ -18,12 +18,13 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from cities_light.models import Country, Region, City
 
-from .models import  User, Clinic, Patient, Prescription, Invoice, Notification, SeenNotification
+from .models import  User, Clinic, Patient, Prescription, Notification, SeenNotification
 from .custom_token_generator import TokenGenerator
 from .serializers import RegionSerializers, CitySerializers
 from .secret_variables import *
 
 import os
+import json
 from random import randint
 from urllib.parse import urlparse
 
@@ -110,6 +111,10 @@ def login_in(request):
         
         return redirect('home')
 
+#--------------
+def demo(request):
+    return render(request, 'demo.html')
+#-----------------
 
 @require_http_methods(["GET"])
 @login_required(login_url='login')
@@ -131,24 +136,52 @@ def index(request):
             }        
         elif request.user.is_admin:
             total_staffs= User.objects.filter(clinic=request.user.clinic_id).count()
-            total_patients = Patient.objects.filter(clinic=request.user.clinic_id).count
+            patients = Patient.objects.filter(clinic=request.user.clinic_id).prefetch_related('records')
+            total_patients = patients.count()
+            total_pending_payments = 0
+            patient_data = []
+            
+            age_wise_patients = {"Child":0, "Teen":0, "Adult":0, "Senior":0, "Unknown":0, }
+            gender_wise_patients = {"Male":0, "Female":0, "Other":0, "Unknown":0}
+            
+            for patient in patients:
+                if patient.gender:
+                    gender_wise_patients[patient.gender.capitalize()] += 1
+                else:
+                    gender_wise_patients["Unknown"] += 1
                 
-            invoices = Invoice.objects.filter(
-                    prescription__patient__clinic=request.user.clinic_id
-                ).select_related('prescription')
-            total_pending_payments = invoices.filter(status__in=['Partial Paid', 'Pending']).count()
+                if patient.age:
+                    age_type = "Child" if patient.age<13 else "Teen" if patient.age<18 else "Adult" if patient.age<60 else "Senior"
+                    age_wise_patients[age_type] += 1
+                else:
+                    age_wise_patients['Unknown'] += 1
+
+
+                for prescription in patient.records.all():
+                    if prescription.status in ['Pending', 'Partial Paid']:
+                        total_pending_payments += 1
+                    
+                    patient_data.append(
+                        (prescription.amount, prescription.visit_date)
+                    )
+
 
             # prescription__visit_date__year=now().year
             # aggregate(total=Sum('amount'))['total'] or 0
-            yearly_data = []
-            for invoice in invoices:
-                yearly_data.append((invoice.amount, invoice.prescription.visit_date))
+            # yearly_data = []
 
             context = {
                 'total_staffs' : total_staffs,
                 'total_patients': total_patients,
                 'total_pending_payments': total_pending_payments,
-                'yearly_data': yearly_data,
+                'age_wise_patients': age_wise_patients,
+                # 'gender_wise_patients': gender_wise_patients,
+                'gender_keys':json.dumps(list(gender_wise_patients.keys())),
+                'gender_values':json.dumps(list(gender_wise_patients.values())),
+                "age_wise_keys": json.dumps(list(age_wise_patients.keys())),
+                "age_wise_values": json.dumps(list(age_wise_patients.values())),
+
+                # 'yearly_data': yearly_data,
                 'load_chart_js': True
             }
         else:
@@ -805,22 +838,18 @@ def add_patient_visit(request, patient_id):
         try:
             with transaction.atomic():
                 prescription = Prescription.objects.create(
-                    patient         = patient,
-                    symptoms        = symptoms,
-                    prescription    = prescription,
-                    visit_date      = visit_date,
-                    next_visit      = next_visit
+                    patient     = patient,
+                    symptoms    = symptoms,
+                    prescription= prescription,
+                    visit_date  = visit_date,
+                    next_visit  = next_visit,
+                    amount      = amount,
+                    pending_amount= pending_amount,
+                    status      = status
                 )
                 if image:    
                     prescription.image = image
                     prescription.save()
-                
-                invoice = Invoice.objects.create(
-                    prescription = prescription,
-                    amount = amount,
-                    pending_amount = pending_amount,
-                    status = status
-                )
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
         else:
@@ -875,29 +904,48 @@ def edit_patient_visit(request, patient_id, visit_id):
                 prs.prescription    = prescription
                 prs.visit_date      = visit_date
                 prs.next_visit      = next_visit
-
+                prs.amount = amount
+                prs.pending_amount = pending_amount
+                prs.status = status
                 if image:
                     if prs.image:
                         os.remove(prs.image.path)
                     prs.image = image
                 prs.save()
-                invoice = prs.invoice
-                invoice.amount = amount
-                invoice.pending_amount = pending_amount
-                invoice.status = status
-                invoice.save()
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
         else:
             messages.success(request, "Visit updated successfully.")
         return redirect('patient_details', patient_id=patient_id)
+
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+def clear_pending_payment(request, patient_id, visit_id):
+    """ Clear Pending payment """
+    clinic = request.user.clinic
+    doctor = request.user
+    if request.user.is_superuser:
+        patient = get_object_or_404(Patient, id=patient_id)
+    elif request.user.is_admin:
+        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)
+    elif request.user.is_admin_staff:
+        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
+    else:
+        return HttpResponseForbidden("You are not allowed to acced this page.")
     
+    prs = get_object_or_404(Prescription, id=visit_id, patient=patient)
+    prs.pending_amount = 0
+    prs.status = "Paid"
+    prs.save()
+    messages.success(request, f"{patient.name} pending payment clear successfylly.")
+    return redirect ('patient_details', patient_id=patient_id)
+
 
 @require_http_methods(['GET'])
 @login_required(login_url='login')
 def delete_patient_visit(request, patient_id, visit_id):
     """ delete perticuler visit of patient """
-    
     clinic = request.user.clinic
     doctor = request.user
     
@@ -907,7 +955,9 @@ def delete_patient_visit(request, patient_id, visit_id):
         patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)
     elif request.user.is_admin_staff:
         patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
-
+    else:
+        return HttpResponseForbidden("You are not allowed to acced this page.")
+    
     prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #perticuler prescription of patient 
     prs.delete()
     messages.success(request, "Visit deleted successfully.")

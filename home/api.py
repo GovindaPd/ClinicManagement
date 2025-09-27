@@ -17,7 +17,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 
 
-from .models import User, Clinic, Patient, Prescription, Invoice
+from .models import User, Clinic, Patient, Prescription
 from .serializers import *
 from .tasks import send_email_task
 from random import randint

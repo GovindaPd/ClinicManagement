@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Clinic, Patient, Prescription, Invoice
+from .models import User, Clinic, Patient, Prescription
 from cities_light.models import *
 from django.urls import reverse
 

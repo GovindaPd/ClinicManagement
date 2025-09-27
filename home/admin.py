@@ -38,7 +38,6 @@ class CustomeUserAdmin(UserAdmin):
         if not obj.pk:
             obj.set_password(obj.password)
         super().save_model(request, obj, form, change)
-        
 
 
 # admin.site.register(User)
@@ -46,6 +45,5 @@ admin.site.register(User, CustomeUserAdmin)
 admin.site.register(Clinic)
 admin.site.register(Patient)
 admin.site.register(Prescription)
-admin.site.register(Invoice)
 admin.site.register(Notification)
 admin.site.register(SeenNotification)

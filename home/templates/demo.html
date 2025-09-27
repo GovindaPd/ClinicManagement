@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Static Area Chart Demo</title>
+    <!-- Load Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h2>Patient Visits Over Time (Static Data)</h2>
+
+    <!-- Canvas element where chart will render -->
+    <div style="width:400px; height:400px;">
+        <canvas id="visitChart" width="400" height="300"></canvas>
+    </div>
+
+    {% comment %}
+    <script>
+      const ctx = document.getElementById('visitChart').getContext('2d');
+
+      const visitChart = new Chart(ctx, {
+        type: 'line',  // Line chart with area fill looks like area chart
+        data: {
+          labels: ['2025-01-01', '2025-01-02', '2025-01-03', '2025-01-04', '2025-01-05'],
+          datasets: [{
+            label: 'Number of Patients',
+            data: [5, 10, 7, 12, 8],
+            backgroundColor: 'rgba(54, 162, 235, 0.4)',  // Blue with transparency for area
+            borderColor: 'rgba(54, 162, 235, 1)',       // Blue border line
+            borderWidth: 2,
+            fill: true,     // This fills the area under the line
+            tension: 0.3    // Smooth curve
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Patients'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Date'
+              }
+            }
+          }
+        }
+      });
+    </script> {% endcomment %}
+
+<!-- radaar chart -->
+<script>
+  const ctx = document.getElementById('visitChart').getContext('2d');
+
+  const radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Fever', 'Cough', 'Headache', 'Fatigue', 'Nausea', 'Back Pain'],
+      datasets: [{
+        label: 'Number of Patients',
+        data: [12, 19, 7, 14, 9, 6],
+        fill: true,
+        backgroundColor: 'rgba(255, 99, 132, 0.4)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(255, 99, 132, 1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          angleLines: {
+            display: true
+          },
+          suggestedMin: 0,
+          suggestedMax: 20
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>
+
+
+ 

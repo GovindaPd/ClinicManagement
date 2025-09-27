@@ -115,9 +115,11 @@
                             data-toggle="modal" data-target="#reportModal" data-src="{{prs.image.url}}" onclick="showImageModal(this)">
                           {% endif %}
                         </td>
-                        <td>{{prs.invoice.amount|default:0}} <i class="fas fa-rupee-sign"></i></td>
-                        <td>{{prs.invoice.pending_amount|default:0}} <i class="fas fa-rupee-sign"></td>
-                        <td>{{prs.invoice.status}}</td>
+                        <td>{{prs.amount|default:0}} <i class="fas fa-rupee-sign"></i></td>
+                        <td>
+                            {{prs.pending_amount|default:0}} <i class="fas fa-rupee-sign">
+                            {% if prs.pending_amount %}<a class="btn cb" href="{% url 'clear_pending_payment' patient_id=patient.id visit_id=prs.id %}" title="Clear Payment" style="margin-left:10px; width:30px; height:25px; padding:0;"><i class='fas fa-handshake'></i></a>{% endif %}</td>
+                        <td>{{prs.status}}</td>
                         <td>{{prs.visit_date|date:'d-M-Y'}}</td>
                         <td>
                           {% if prs.next_visit %}
