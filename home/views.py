@@ -27,6 +27,7 @@ import os
 import json
 from random import randint
 from urllib.parse import urlparse
+from collections import defaultdict
 
 
 # referer = request.META.get('HTTP_REFERER')
@@ -143,7 +144,9 @@ def index(request):
             
             age_wise_patients = {"Child":0, "Teen":0, "Adult":0, "Senior":0, "Unknown":0, }
             gender_wise_patients = {"Male":0, "Female":0, "Other":0, "Unknown":0}
-            
+            monthlyIncomeGrouped = defaultdict(lambda: defaultdict(int))
+            monthlyPatientGrouped = defaultdict(lambda: defaultdict(int))
+
             for patient in patients:
                 if patient.gender:
                     gender_wise_patients[patient.gender.capitalize()] += 1
@@ -156,32 +159,43 @@ def index(request):
                 else:
                     age_wise_patients['Unknown'] += 1
 
-
                 for prescription in patient.records.all():
                     if prescription.status in ['Pending', 'Partial Paid']:
                         total_pending_payments += 1
                     
-                    patient_data.append(
-                        (prescription.amount, prescription.visit_date)
-                    )
+                    if prescription.visit_date :
+                        monthlyIncomeGrouped[prescription.visit_date.year][prescription.visit_date.month] += prescription.amount
+                        monthlyPatientGrouped[prescription.visit_date.year][prescription.visit_date.month] += 1
 
+            monthWiselabels = []
+            monthWiseIncomes = []
+            monthWisePatients = []
+            min_year = min(monthlyIncomeGrouped.keys())
+            max_year = max(monthlyIncomeGrouped.keys())
+            monthName = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
 
-            # prescription__visit_date__year=now().year
-            # aggregate(total=Sum('amount'))['total'] or 0
-            # yearly_data = []
+            for year in range(min_year, max_year + 1):
+                for month in range(1, 13):
+                    monthWiselabels.append(f"{monthName[month]}-{year}")
+                    monthWiseIncomes.append(monthlyIncomeGrouped[year][month])
+                    monthWisePatients.append(monthlyPatientGrouped[year][month])
 
             context = {
                 'total_staffs' : total_staffs,
                 'total_patients': total_patients,
                 'total_pending_payments': total_pending_payments,
                 'age_wise_patients': age_wise_patients,
-                # 'gender_wise_patients': gender_wise_patients,
+                
                 'gender_keys':json.dumps(list(gender_wise_patients.keys())),
                 'gender_values':json.dumps(list(gender_wise_patients.values())),
+                
                 "age_wise_keys": json.dumps(list(age_wise_patients.keys())),
                 "age_wise_values": json.dumps(list(age_wise_patients.values())),
 
-                # 'yearly_data': yearly_data,
+                # year wise earning data
+                "monthWiselabels": json.dumps(monthWiselabels),
+                "monthWiseIncomes": json.dumps(monthWiseIncomes),
+                "monthWisePatients": json.dumps(monthWisePatients),
                 'load_chart_js': True
             }
         else:

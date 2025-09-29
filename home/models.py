@@ -1,7 +1,7 @@
 #internal imports
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.core.files.storage import default_storage
 from django.utils import timezone
 
@@ -141,7 +141,7 @@ class Patient(models.Model):
     doctor      = models.ForeignKey(User, related_name="patients", on_delete=models.CASCADE)
     clinic      = models.ForeignKey(Clinic, related_name='clinic_patients', on_delete=models.CASCADE)
     name        = models.CharField(max_length=255, null=False, blank=False)
-    age         = models.PositiveIntegerField(blank=True, null=True)
+    age         = models.FloatField(default=0, blank=True, null=True, validators=[MinValueValidator(0.0), MaxValueValidator(120.0)])
     gender      = models.CharField(max_length=10, choices=(("Male", "Male"), ("Female", "Female"), ("Other", "Other")), null=True, blank=True)
     number      = models.CharField(validators=[indian_phone_regex], max_length=15, blank=True, null=True, unique=False)
     address     = models.CharField(max_length=255, blank=True, null=True)
