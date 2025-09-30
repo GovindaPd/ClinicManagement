@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Clinic, Patient, Prescription
+from .models import *
 from cities_light.models import *
 from django.urls import reverse
 
@@ -11,8 +11,6 @@ class UserLoginSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'password']
-        #read_only_fields = fields
-
 
 
 class UserOtpSerializer(serializers.ModelSerializer):
@@ -48,7 +46,6 @@ class PatientSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
 
-
 class PrescriptionSerializer(serializers.ModelSerializer):
     patient_name = serializers.ReadOnlyField(source='patient.name')
     doctor_name = serializers.ReadOnlyField(source='doctor.name')
@@ -57,7 +54,6 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         model = Prescription
         fields = '__all__'
     
-
 
 class RegionSerializers(serializers.ModelSerializer):
     class Meta:
@@ -69,4 +65,4 @@ class CitySerializers(serializers.ModelSerializer):
     class Meta:
         model = City
         fields = ['id','name']
-        
+

@@ -171,6 +171,7 @@ class Prescription(models.Model):
     patient     = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE)
     symptoms    = models.TextField(blank=True)
     prescription= models.TextField(blank=True)
+    # dosage = models.CharField(max_length=50)
     image       = models.ImageField(upload_to=rename_image, blank=True)
     amount      = models.IntegerField(default=0)
     pending_amount= models.IntegerField(default=0)

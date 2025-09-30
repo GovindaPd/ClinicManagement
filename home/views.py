@@ -29,7 +29,6 @@ from random import randint
 from urllib.parse import urlparse
 from collections import defaultdict
 
-
 # referer = request.META.get('HTTP_REFERER')
 # url_name = get_url_name(referer)
 
@@ -163,7 +162,7 @@ def index(request):
                     if prescription.status in ['Pending', 'Partial Paid']:
                         total_pending_payments += 1
                     
-                    if prescription.visit_date :
+                    if prescription.visit_date:
                         monthlyIncomeGrouped[prescription.visit_date.year][prescription.visit_date.month] += prescription.amount
                         monthlyPatientGrouped[prescription.visit_date.year][prescription.visit_date.month] += 1
 
@@ -172,14 +171,21 @@ def index(request):
             monthWisePatients = []
             min_year = min(monthlyIncomeGrouped.keys())
             max_year = max(monthlyIncomeGrouped.keys())
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print(monthlyIncomeGrouped[min_year].keys())
             monthName = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
+
 
             for year in range(min_year, max_year + 1):
                 for month in range(1, 13):
+                    if year == min_year and month not in monthlyIncomeGrouped[min_year].keys(): # don't get any date before clinic open
+                        continue
+                    if year > now().year or (year == now().year and month > now().month):   # don't get any future date data
+                        break
                     monthWiselabels.append(f"{monthName[month]}-{year}")
                     monthWiseIncomes.append(monthlyIncomeGrouped[year][month])
                     monthWisePatients.append(monthlyPatientGrouped[year][month])
-
+                    
             context = {
                 'total_staffs' : total_staffs,
                 'total_patients': total_patients,

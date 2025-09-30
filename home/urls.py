@@ -42,7 +42,7 @@ urlpatterns = [
     
     path('staffs/', views.get_users, name='get_users'),
     path('check-unique/', views.check_unique, name="check_unique"),
-    path('demo/', views.demo)
+    path('demo/', views.demo),
 ]
 
 # from django.contrib.auth import views as auth_views
