@@ -111,10 +111,6 @@ def login_in(request):
         
         return redirect('home')
 
-#--------------
-def demo(request):
-    return render(request, 'demo.html')
-#-----------------
 
 @require_http_methods(["GET"])
 @login_required(login_url='login')
