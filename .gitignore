@@ -1,16 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff:
+*.log
+*.pot
 *.pyc
-*~
-_pycache_
-.DS_Store
-*.DS_Store
-*migrations/
+*.pyo
+*.pyd
 *.sqlite3
 db.sqlite3
-debug-error.log
-home/google/credentials.json
-*media/
-# static/
-nohup.out
+
+# Media / uploaded files
+/media
+/media/*
+*.jpg
+*.png
+*.mp4
+
+# Static files (if you're collecting static here)
+staticfiles/
+static/
+
+# Local settings (optional, if you separate secrets)
+local_settings.py
+.env
+.env.*
+
+# VS Code / PyCharm / other IDEs
 .vscode/
-db.json
-credentials.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Pip environment files
+*.egg-info/
+.eggs/
+*.egg
+pip-log.txt
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Migrations (optional, usually you want to keep these)
+# But you can ignore auto-generated ones temporarily if needed
+# */migrations/*.py
+*/migrations/__pycache__/
+
+# Node stuff (if you’re using npm/yarn for frontend)
+node_modules/
