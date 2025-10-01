@@ -573,10 +573,6 @@ let myIncomeLineChart = new Chart(incomeAreaChart, {
         ticks: {
           maxTicksLimit: 12,
           padding: 10,
-          // Include a dollar sign in the ticks
-          //callback: function(value, index, values) {
-          //  return number_format(value) //+ '₹';
-          //}
         },
         gridLines: {
           color: "rgb(234, 236, 244)",
@@ -707,13 +703,13 @@ let myIncomeBarChart = new Chart(incomeBarChart, {
   data: {
     labels: {{monthWiselabels|safe}},
     datasets: [{
-      label: "Monthly Patients",
-      backgroundColor: "rgba(78, 115, 223, 0.7)", // More solid for bars
-      borderColor: "rgba(78, 115, 223, 1)",
-      borderWidth: 1,
-      hoverBackgroundColor: "rgba(78, 115, 223, 0.9)",
-      hoverBorderColor: "rgba(78, 115, 223, 1)",
+      label: "Monthly Revenue",
       data: {{monthWiseIncomes|safe}},
+      backgroundColor: "#4e73df",
+      borderColor: "#4e73df",
+      borderWidth: 1,
+      hoverBackgroundColor: "#2e59d9",
+      hoverBorderColor: "rgba(78, 115, 223, 1)",
     }],
   },
   options: {
@@ -739,7 +735,7 @@ let myIncomeBarChart = new Chart(incomeBarChart, {
       }],
       yAxes: [{
         ticks: {
-          maxTicksLimit: 12,
+          maxTicksLimit: 10,
           padding: 10,
         },
         gridLines: {
@@ -787,12 +783,12 @@ let myPatientBarChart = new Chart(PatientBarChart, {
     labels: {{monthWiselabels|safe}},
     datasets: [{
       label: "Monthly Patients",
-      backgroundColor: "rgba(78, 115, 223, 0.7)", // More solid for bars
-      borderColor: "rgba(78, 115, 223, 1)",
-      borderWidth: 1,
-      hoverBackgroundColor: "rgba(78, 115, 223, 0.9)",
-      hoverBorderColor: "rgba(78, 115, 223, 1)",
       data: {{monthWisePatients|safe}},
+      backgroundColor: "#4e73df",
+      borderColor: "#4e73df",
+      borderWidth: 1,
+      hoverBackgroundColor: "#2e59d9",
+      hoverBorderColor: "rgba(78, 115, 223, 1)",
     }],
   },
   options: {

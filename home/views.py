@@ -1,21 +1,23 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import update_last_login
-from django.contrib import messages
+from django.views.decorators.http import require_http_methods
+
 from django.core.mail import send_mail
-from django.core.files.storage import default_storage
+from django.urls import resolve, reverse
 from django.utils.timezone import now
+
 from django.conf import settings
-from django.urls import resolve
+from django.core.files.storage import default_storage
+
+from django.contrib import messages
 from django.db import transaction
 from django.db import OperationalError, IntegrityError
 from django.db.models import Count, Exists, OuterRef, F, Q, Sum
 from django.core.exceptions import ValidationError
-from django.urls import reverse
-# from django.core.validators import V
-from django.views.decorators.http import require_http_methods
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
+
 from cities_light.models import Country, Region, City
 
 from .models import  User, Clinic, Patient, Prescription, Notification, SeenNotification

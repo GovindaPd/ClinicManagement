@@ -9,19 +9,19 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.sqlite3
-db.sqlite3
+# *.sqlite3
+# db.sqlite3
 
 # Media / uploaded files
-/media
-/media/*
-*.jpg
-*.png
-*.mp4
+# /media
+# /media/*
+# *.jpg
+# *.png
+# *.mp4
 
 # Static files (if you're collecting static here)
-staticfiles/
-static/
+# staticfiles/
+# static/
 
 # Local settings (optional, if you separate secrets)
 local_settings.py

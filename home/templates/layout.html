@@ -18,8 +18,7 @@
         
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
-    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {% comment %} <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> {% endcomment %}
 
     <style>
         input::-webkit-outer-spin-button,
@@ -620,9 +619,6 @@
     <!-- Page level plugins -->
     <script src="{% static 'vendor/chart.js/Chart.min.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
-    <!-- Page level custom scripts -->
-    {% comment %} <script src="{% static 'js/demo/chart-area-demo.js' %}"></script> {% endcomment %}
-    {% comment %} <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script> {% endcomment %}
     {% endif %}
 
     {% block cstm_javascript %}
