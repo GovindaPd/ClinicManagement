@@ -71,9 +71,9 @@ class User(AbstractUser):
     is_active   = models.BooleanField(default=True)
     updated_at  = models.DateTimeField(auto_now=True)
 
-    # USERNAME_FIELD = 'email'
     objects     = CustomUserManager()
-
+    # USERNAME_FIELD = 'email'
+    
     @property
     def user_type(self):
         if self.is_superuser:
@@ -83,7 +83,7 @@ class User(AbstractUser):
         elif self.is_admin_staff:
             return "admin_staff"
         else:
-            return "undefined"   
+            return "undefined"
         
     @staticmethod
     def generate_custom_id(max_attempts=10):
@@ -148,7 +148,6 @@ class Patient(models.Model):
     medical_history = models.TextField(blank=True, default="")
     blood_group = models.CharField(max_length=5, choices=BLOOD_GROUPS, blank=True, null=True)
     image       = models.ImageField(upload_to=rename_image, blank=True) #report image or patient
-    # images      = models.JSONField(default=list)
     
     created_at  = models.DateField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
@@ -213,6 +212,7 @@ class SeenNotification(models.Model):
         return f"{self.seen_by.username} senn notification: {self.note.id}"
 
 
+    
 # class RepetedAttempt(models.Model):
 #     ip_address = models.GenericIPAddressField()
 #     username = models.CharField(max_length=150, blank=True, null=True)
@@ -226,55 +226,6 @@ class SeenNotification(models.Model):
 #         cutoff = timezone.now() - timedelta(minutes=minutes)
 #         recent = cls.objects.filter(ip_address=ip, timestamp__gte=cutoff).count()
 #         return recent >= limit
-    
-    
-# class PasswordResetOTP(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='password_reset_otp')
-#     otp_code = models.CharField(max_length=6, blank=False, null=False)
-#     is_verified = models.BooleanField(default=False)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     ## session_token = models.UUIDField(default=uuid.uuid4, unique=True)
-#     @property
-#     def is_expired(self):
-#         return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
-    
-#     def __str__(self):
-#         return f"OTP for {self.user.username} - {self.otp_code}"
-
-# ----------------------------------
-# Create a notification
-# n = Notification.objects.create(
-#     sender=user1,
-#     subject="Meeting Reminder",
-#     message="Don't forget our meeting tomorrow!"
-# )
-
-# Attach receivers with seen status default False
-# for u in [user2, user3, user4]:
-#     NotificationReceiver.objects.create(notification=n, receiver=u)
-
-# Mark as seen by one user
-# nr = NotificationReceiver.objects.get(notification=n, receiver=user2)
-# nr.seen = True
-# nr.save()
-
-# Query unseen notifications for a user
-# unread = NotificationReceiver.objects.filter(receiver=user3, seen=False)
-# ------------------------
-
-
-# models.py
-# class MedicalRecord(models.Model):
-#     patient = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE)
-#     doctor = models.ForeignKey(User, related_name="records", on_delete=models.CASCADE)
-#     visit_date = models.DateField(auto_now_add=True)    #when the instance is created and auto_now is for whenever recore is updated
-#     symptoms = models.TextField()
-#     prescription = models.TextField()
-#     amount_paid = models.PositiveIntegerField(default=0)
-#     next_visit = models.DateField(null=True, blank=True)
-
-#     def __str__(self):
-#         return f"Paitent {self.patient.name} by Doctor {self.doctor.username}"
 
 
 # class FieldVisibility(models.Model):
@@ -311,27 +262,3 @@ class SeenNotification(models.Model):
 #     class Meta:
 #         model = FieldVisibility
 #         fields = ["visible_fields"]
-
-# template.py
-# from django import template
-# register = template.Library()
-
-# @register.filter
-# def dict_key(obj, key):
-#     return getattr(obj, key, "")
-
-#html file code
-# <table>
-#     <tr>
-#         {% for field in visible_fields %}
-#             <th>{{ field }}</th>
-#         {% endfor %}
-#     </tr>
-#     {% for record in records %}
-#     <tr>
-#         {% for field in visible_fields %}
-#             <td>{{ record|dict_key:field }}</td>  <!-- Use the custom filter to get the field dynamically -->
-#         {% endfor %}
-#     </tr>
-#     {% endfor %}
-# </table>

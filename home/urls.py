@@ -17,6 +17,7 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('clinic/', views.clinic, name='clinic'),
     path('patients/', views.patients, name='patients'),
+
     
     path('add-user/', views.add_user, name="add_user"),
     path('edit-user/<str:user_id>/', views.edit_user, name="edit_user"),
@@ -40,6 +41,11 @@ urlpatterns = [
     path('delete-notification/<int:note_id>/', views.delete_note, name='delete_notification'),
     path('mark-as-seen/<int:note_id>/', views.markSeenNotification, name='mark_as_seen'),
     
+    path('groups/', views.groups, name="groups"),
+    path('groups/add/', views.groups_add, name="groups_add"),
+    path('groups/edit/<int:id>/', views.groups_edit, name="groups_edit"),
+    path('group/delete/<int:id>/', views.groups_delete, name="groups_delete"),
+
     path('staffs/', views.get_users, name='get_users'),
     path('check-unique/', views.check_unique, name="check_unique"),
 ]

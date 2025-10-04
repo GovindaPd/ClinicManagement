@@ -47,6 +47,60 @@
         </div>
     </div>
 
+    <div class="table-responsive" style="max-height: 550px; overflow-y: auto; overflow-x: auto; position: relative;">
+        <table class="table table-bordered ctb">
+        
+        <thead class="" style="position: sticky; top: 0; z-index: 500;">
+        <tr>
+            <th scope="col">S.no. <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+            {% comment %} <th scope="col">Id</th> {% endcomment %}
+            <th scope="col">Username <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+            <th scope="col">First Name <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+            <th scope="col">Last Name <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+            <th scope="col">Email Address <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></th>
+            <th scope="col">Join Date <i class="fas fa-sort cstm-sort" onclick="reverse()"></i></th>
+            <th scope="col">Clinic <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+            <th scope="col">Status</th>
+            <th scope="col">Action</th><!-- View/Edit-->
+        </tr>
+        </thead>
+        <tbody>
+        {% if users %}
+        {% for user in users %}
+        <tr class="">
+            <td>{{forloop.counter}}.</td>
+            {% comment %} <td>{{user.custom_id}}</td> {% endcomment %}
+            <td>{{user.username}}</td>
+            {% comment %} <td>{% if patient.blood_group %}{{patient.blood_group}}{% endif %}</td>
+            <td>{% if patient.age %}{{patient.age}}{% endif %}</td> {% endcomment %}
+            <td>{{user.first_name}}</td>
+            <td>{{user.last_name}}</td>
+            <td>{{user.email}}</td>
+            <td>{{user.date_joined|date:"d-b-Y"}}</td>
+            <td>{{user.clinic.name}}</td>
+            <td>
+                <form class="user_activation_form" method="POST" action="{% url 'update_user_status' %}">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{user.custom_id}}">
+                <select class="form-control box-background-dark text-light" name="status" onchange="this.form.submit()">
+                    <option value="1" {% if user.is_active %}selected{% endif %}>Active</option>
+                    <option value="0" {% if not user.is_active %}selected{% endif %}>Deactive</option>
+                </select>
+                </form>
+            </td>
+            {% comment %} <td>
+                <a class="btn btn-primary" href="{% url 'patient_details' patient_id=patient.id %}">View</a>
+            </td> {% endcomment %}
+            <td>
+                <a class="btn cb" href="{% url 'edit_user' user.custom_id  %}">View/Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+        </tbody>
+        </table>
+    </div>
+
   {% if request.user.is_admin %}
   <button class="btn cb" name="edit_clinic_details" type="button" style="margin-top: 20px; width:10rem;">Edit</button>
   

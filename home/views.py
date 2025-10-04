@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import update_last_login
+from django.contrib.auth.decorators import permission_required
 from django.views.decorators.http import require_http_methods
 
 from django.core.mail import send_mail
@@ -16,6 +17,7 @@ from django.db import transaction
 from django.db import OperationalError, IntegrityError
 from django.db.models import Count, Exists, OuterRef, F, Q, Sum
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import Group, Permission
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 
 from cities_light.models import Country, Region, City
@@ -131,7 +133,7 @@ def index(request):
                 'load_chart_js': True
                 # 'total_doctors': total_doctors,
                 # 'recent_patients': recent_patients,
-            }        
+            }
         elif request.user.is_admin:
             total_staffs= User.objects.filter(clinic=request.user.clinic_id).count()
             patients = Patient.objects.filter(clinic=request.user.clinic_id).prefetch_related('records')
@@ -592,8 +594,13 @@ def profile(request):
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
+@permission_required(['home.view_clinic', 'home.add_clinic', 'home.change_clinic'], raise_exception=True)
 def clinic(request):
     if request.method == 'GET':
+        if request.user.is_superuser:
+            clinics = Clinic.objects.all()
+        # elif request.user.is_admin:
+        #     clinics = request.user.
         return render(request, 'clinic.html')
     
     if request.method == 'POST':
@@ -1112,13 +1119,14 @@ def markSeenNotification(request, note_id):
         return JsonResponse({'message': 'Bad request.'}, status=400)
 
 
+@require_http_methods(['GET'])
 @login_required(login_url='login')
 def check_unique(request):
-    """ check email or username is unique or not for user creation form """
+    """ check email or username or group name is unique. """
 
     if request.method == 'GET':
-        field = request.GET.get('field')
-        value = request.GET.get('value')
+        field = request.GET.get('field', '')
+        value = request.GET.get('value', '')
         exists = None
         message = None
 
@@ -1126,10 +1134,12 @@ def check_unique(request):
             exists = User.objects.filter(email=value).exists()  
         elif field == 'username':
             exists = User.objects.filter(username=value).exists()
+        elif field == 'group_name':
+            value = value.strip().lower().replace(" ","_")
+            exists = Group.objects.filter(name=value).exists()
         
         message = f"{field} is not available" if exists == True else f"{field} is available"
         return JsonResponse({'exists':exists, 'message':message}, status=200)
-    return HttpResponseBadRequest()
 
 
 @login_required(login_url='login')
@@ -1152,6 +1162,109 @@ def get_users(request):
         return JsonResponse({'data': users}, status=200) 
     return JsonResponse({'data': []}, status=400)
 
+
+# content_type = ContentType.objects.get_for_model(MyModel)
+# permissions = Permission.objects.filter(content_type=content_type)
+# app_label = Group._meta.app_label
+# model_name = Group._meta.model_name
+# print(f"{app_label}.view_{model_name}")
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+@permission_required(['auth.view_group'], raise_exception=True)
+def groups(request):
+    groups = Group.objects.all()
+    return render(request, 'groups.html', {'groups':groups})
+
+
+@require_http_methods(['GET','POST'])
+@login_required(login_url='login')
+@permission_required(['auth.add_group'], raise_exception=True)
+def groups_add(request):
+    permissions = Permission.objects.all()
+    if request.method == "GET":
+        return render(request, 'groups_add.html', {'permissions':permissions})
+        
+    if request.method == "POST":
+        group_name = request.POST.get('name','').strip().lower().replace(" ", "_")
+        choosen_p = request.POST.getlist('permissions', [])
+        choosen_permission = []
+        for cp in choosen_p:
+            try:
+                cp =int(cp)
+                choosen_permission.append(cp)
+            except (TypeError, ValueError):
+                pass
+
+        per_objs = Permission.objects.filter(id__in=choosen_permission) if choosen_permission else []
+        try:
+            group = Group.objects.create(name=group_name)
+            if per_objs:
+                group.permissions.set(per_objs)    # group.permissions.add(*per_objs)
+                group.save()
+            messages.success(request, f"Group {group.name} created successfully.")
+        except IntegrityError:
+                messages.error(request, f"Error occured in Group creation.")
+        return redirect('groups')
+        
+
+
+@require_http_methods(['GET','POST'])
+@login_required(login_url='login')
+@permission_required(['auth.change_group'], raise_exception=True)
+def groups_edit(request, id):
+    try:
+        group           = Group.objects.get(id=id)
+        permissions     = Permission.objects.all()
+        group_permissions= Permission.objects.filter(group=group.id)
+    except (Group.DoesNotExist, Group.MultipleObjectsReturned):
+        messages.error(request, f"Group does not exist with given {id=}.")
+        return redirect('groups')
+    
+    if request.method == "GET":
+        permissions = permissions.exclude(id__in=group_permissions)
+        return render(request, 'groups_edit.html', {'group':group, 'permissions':permissions, 'group_permissions':group_permissions})
+    
+    if request.method == "POST":
+        group_name = request.POST.get('name', '').strip().lower().replace(" ", "_")
+        choosen_p = request.POST.getlist('permissions', [])
+        choosen_permission = []
+        
+        for cp in choosen_p:
+            try:
+                cp =int(cp)
+                choosen_permission.append(cp)
+            except (TypeError, ValueError):
+                pass
+        
+        per_objs = Permission.objects.filter(id__in=choosen_permission) if choosen_permission else []
+        try:
+            if per_objs:
+                group.permissions.set(per_objs)
+            else:
+                group.permissions.clear()
+            group.name = group_name
+            group.save()
+            messages.success(request, f"Group {group.id} Updated successfully.")
+        except IntegrityError:
+            messages.error(request, f"Error occured in Group {group.id} updation.")
+        return redirect('groups')
+
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+@permission_required(['auth.delete_group'], raise_exception=True)
+def groups_delete(request, id):
+    try:
+        group = Group.objects.get(id=id)
+    except (Group.DoesNotExist, Group.MultipleObjectsReturned):
+        messages.error(request, f"Group does not exist with given {id=}.")
+    group_id = group.id
+    group.delete()
+    messages.success(request, f"Group id={group_id} deleted successfully.")
+    return redirect('groups')
+
+
 # fetch("/staffs/")
 #   .then(response => {
 #     if (!response.ok) {
@@ -1171,5 +1284,3 @@ def get_users(request):
 #   const data = await response.json();
 #   console.log("Data:", data); // ✅ actual data
 # }
-
-# getData();
