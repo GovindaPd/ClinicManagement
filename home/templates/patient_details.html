@@ -127,8 +127,8 @@
                           {% endif %}
                         </td>
                         <td>
-                          <a href="{% url 'edit_patient_visit' patient_id=patient.id visit_id=prs.id %}" class="action-links" title="View/Edit" style="margin-right:8px;">
-                            <i class="fas fa-eye"></i>/<i class="fas fa-pen"></i>
+                          <a href="{% url 'edit_patient_visit' patient_id=patient.id visit_id=prs.id %}" class="action-links" title="Edit" style="margin-right:8px;">
+                            <i class="fas fa-pen"></i>
                           </a>
                           <a class="action-links" data-toggle="modal" data-target="#deleteConfirmModal" 
                             data-url="{% url 'delete_patient_visit' patient_id=patient.id visit_id=prs.id %}" onclick="showDeleteModal(this)" title="Delete">

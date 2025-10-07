@@ -1,0 +1,212 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="nav-container" style="display: flex; gap: 10px; justify-content: center;">
+            <button class="cnav-btn" onclick="window.history.back()" title="Back"><i class="fa fa-arrow-left"></i></button>
+            <button class="cnav-btn" onclick="window.history.forward()" title="Forward"><i class="fa fa-arrow-right"></i></button>
+            <h2 class="mb-0 custome-color-dark">Add Clinic Details</h2>  
+        </div>
+    </div>
+    <hr>
+
+    <div id="clinic-from-div">
+        <div class="justify-content-center">
+            <form method="POST" class="clinic_form">
+                {% csrf_token %}
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Clinic Name <small id="clinicname_error" style="color:red; display:none;">Clinic name is not available</small></label>
+                        <input type="text" class="form-control" name="clinic_name" placeholder="Clinic Name" style="width: 100%;" maxlength="50"
+                            oninput="checkUnique(this)" required>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" placeholder="example@gmail.com" style="width: 100%;" 
+                        maxlength="50" oninput="validateInput(this)" required>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6"><label class="form-label">Number</label>
+                        <input type="number" class="form-control" name="number" placeholder="XXXXXXXXXX" style="width: 100%;" 
+                            oninput="validateInput(this)" required>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-control" name="address" placeholder="Address" style="width: 100%;" 
+                        maxlength="150" oninput="validateInput(this)" required>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">State Name</label>
+                        <select id="clinic_state" class="form-control" name="state" style="width: 100%;" required>
+                            <option value="">Select a state</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">City Name</label>
+                        <select id="clinic_city" class="form-control" name="city" style="width: 100%;" required>
+                            <option value="">Select a city</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Pincode</label>
+                        <input type="number" class="form-control" name="pincode" placeholder="XXXXXX" style="width: 100%;" 
+                            oninput="validateInput(this)" required>
+                    </div>
+                    {% comment %} <div class="col"><label class="form-label">Profile Image</label>
+                        <input type="file" class="form-control"  name="profile_img" placeholder="Profile Image" style="width: 100%;" accept="image/png, image/jpeg" required onchange="validateFileSize(event)">
+                    </div> {% endcomment %}
+                </div>
+                
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Specialization</label>
+                        <textarea name="specializations" class="form-control" placeholder="" style="width: 100%; resize:none;" 
+                            oninput="validateInput(this)" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 20px; margin-bottom: 20px; padding-left:10px;">
+                    <button class="btn cb" name="submit_clinic_details" type="submit" style="width: 10rem;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* select field javascript*/
+        document.addEventListener("DOMContentLoaded", () => {
+            const stateSelect = document.getElementById('clinic_state');
+            const citySelect = document.getElementById('clinic_city');
+            
+            // Fetch states when the page loads or state field is clicked
+            stateSelect.addEventListener('click', () => {
+                if (stateSelect.options.length > 1) return; // Prevent multiple fetches
+                fetch("{% url 'country_states' %}") 
+                    .then(response => response.json())
+                    .then(states => {
+                        // Populate state options
+                        states['region'].forEach(state => {
+                            const option = document.createElement('option');
+                            option.value = state.id;
+                            option.textContent = state.name;
+                            stateSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching states:', error));
+            });
+        
+            // Fetch cities based on selected state
+            stateSelect.addEventListener('change', () => {
+                const stateId = stateSelect.value;
+                citySelect.innerHTML = '<option value="">Select a city</option>'; // Reset city options
+                if (!stateId) {
+                    citySelect.disabled = true;
+                    return;
+                }
+                
+                fetch(`/state-cities/${stateId}`)
+                    .then(response => response.json())
+                    .then(cities => {
+                        // Populate city options
+                        cities['cities'].forEach(city => {
+                            const option = document.createElement('option');
+                            option.value = city.id;
+                            option.textContent = city.name;
+                            citySelect.appendChild(option);
+                        });
+                        citySelect.disabled = false;
+                    })
+                    .catch(error => console.error('Error fetching cities:', error));
+            });
+        });
+
+        let usernameTimeout;
+        function checkUnique(element){
+            clearTimeout(usernameTimeout);
+            let field = null;
+            let value = null;
+            let error = null;
+            if (element.name == 'clinic_name'){
+                field = element.name
+                value = element.value
+                error = $("#clinicname_error")
+                
+                if (value.length < 6) {
+                    element.setCustomValidity('Clinic_name should be greator then 5 characters.');
+                    error.hide()
+                }
+                else {
+                    element.setCustomValidity('');
+                    usernameTimeout = setTimeout(function () {
+                        $.ajax({
+                            url: "{% url 'check_unique' %}",
+                            type: "GET",
+                            data: { 'field': field, 'value':value },
+                            success: function(response) {
+                                if (response.exists==true) {
+                                    error.css('color','red')
+                                    error.html(response.message)
+                                    error.show();
+                                } else if(response.exists==false) {
+                                    error.css('color','green')
+                                    error.html(response.message)
+                                    error.show()
+                                }
+                            }
+                        });
+                    }, 500);
+                }
+            }
+            element.reportValidity();
+        }
+    
+    function validateInput(input) {
+        const value = input.value.trim();
+        const name = input.name.toLowerCase(); // fallback if needed
+
+        let isValid = true;
+        let message = '';
+
+        // Email
+        if (name == 'email') {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            isValid = emailPattern.test(value);
+            message = isValid ? '' : 'Invalid email format.';
+        }
+        // Phone Number (10 digits)
+        else if (name == 'number') {
+            const phonePattern = /^[6-9]\d{9}$/;
+            isValid = phonePattern.test(value);
+            message = isValid ? '' : 'Invalid phone number.';
+        }
+        // Pincode (6-digit number)
+        else if (name == 'pincode') {
+            const pincodePattern = /^\d{6}$/;
+            isValid = pincodePattern.test(value);
+            message = isValid ? '' : 'Invalid pincode.';
+        }
+        // Address, State, City, Specializations: basic non-empty + character check
+        else if (['address', 'state', 'city'].includes(name)) {
+            isValid = /^[a-zA-Z0-9\s,.-]+$/.test(value) && value.length >= 3;
+            message = isValid ? '' : 'Invalid characters or too short.';
+        }
+
+        // Show or clear validation message
+        let errorEl = input.nextElementSibling;
+        if (!errorEl || !errorEl.classList.contains('error-message')) {
+            errorEl = document.createElement('div');
+            errorEl.className = 'error-message';
+            errorEl.style.color = 'red';
+            errorEl.style.fontSize = '0.8rem';
+            input.parentNode.insertBefore(errorEl, input.nextSibling);
+        }
+
+        errorEl.textContent = message;
+        input.style.borderColor = isValid ? '' : 'red';
+    }
+
+</script>
+{% endblock %}

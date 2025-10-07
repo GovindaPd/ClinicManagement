@@ -112,45 +112,6 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'home', 'static')]
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'rest_framework.authentication.SessionAuthentication',
-#         'rest_framework.authentication.TokenAuthentication',
-#         'rest_framework.authentication.BasicAuthentication',
-#         # 'rest_authtoken.auth.AuthTokenAuthentication'
-#         # 'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     ],
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.IsAuthenticated',
-#         'rest_framework.permissions.IsAdminUser',   #AllowAny
-#     ],
-#     'DEFAULT_RENDERER_CLASSES': [
-#         'rest_framework.renderers.JSONRenderer',
-#         'rest_framework.renderers.BrowsableAPIRenderer',
-#     ]
-# }
-
-# REST_FRAMEWORK = {
-#     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-# }
-
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     ],
-# }
-
-# SIMPLE_JWT = {
-#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-#     'ROTATE_REFRESH_TOKENS': True,
-#     'BLACKLIST_AFTER_ROTATION': True,
-#     # 'AUTH_HEADER_TYPES': ('Bearer',),  # Token type prefix in headers
-# }
-
-
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'   #'mail.justapay.in'
@@ -191,3 +152,41 @@ CSRF_COOKIE_SECURE = True  # Enable for secure CSRF cookies
 # CELERY_BROKER_URL = 'redis://localhost:6379/0'
 # CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 # -------------------------------------------------- #
+
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework.authentication.SessionAuthentication',
+#         'rest_framework.authentication.TokenAuthentication',
+#         'rest_framework.authentication.BasicAuthentication',
+#         # 'rest_authtoken.auth.AuthTokenAuthentication'
+#         # 'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated',
+#         'rest_framework.permissions.IsAdminUser',   #AllowAny
+#     ],
+#     'DEFAULT_RENDERER_CLASSES': [
+#         'rest_framework.renderers.JSONRenderer',
+#         'rest_framework.renderers.BrowsableAPIRenderer',
+#     ]
+# }
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+# }
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ],
+# }
+
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+#     'ROTATE_REFRESH_TOKENS': True,
+#     'BLACKLIST_AFTER_ROTATION': True,
+#     # 'AUTH_HEADER_TYPES': ('Bearer',),  # Token type prefix in headers
+# }

@@ -20,10 +20,12 @@
                                 <input type="email" class="form-control" id="email" name="email" placeholder="Email must be unique" style="width: 100%;"
                                      maxlength="50" value="" required oninput="checkUnique(this)">
                             </div>
-                            {% comment %} <div class="col-sm-6"><label class="form-label">Age</label>
+                            {% comment %} 
+                            <div class="col-sm-6"><label class="form-label">Age</label>
                                 <input type="number" class="form-control" name="age" placeholder="Age" style="width: 100%;"
                                     max="150" min="0" step="0.1" value="">
-                            </div> {% endcomment %}
+                            </div>
+                            {% endcomment %}
                         </div>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6">
@@ -41,26 +43,28 @@
                             {% if request.user.is_superuser %}
                             <div class="col-sm-6">
                                 <label class="form-label">User type</label>
-                                <select class="form-control" name="user_type" style="width: 100%;" required>
+                                <select class="form-control" name="user_type" style="width: 100%;">
                                     <option value="">Select User Type</option>
                                     <option value="is_admin">Admin</option>
-                                    <option value="is_new_staff">Staff</option>
+                                    <option value="is_admin_staff">Admin Staff</option>
                                 </select>
                             </div>
                             {% endif %}
                             <div class="col-sm-6">
                                 <label class="form-label">Clinic</label>
+                                {% if request.user.is_superuser %}
                                 <select class="form-control" name="clinic" style="width: 100%;">
-                                    {% if request.user.is_superuser %}
                                     <option value="">Select Clinic</option>
-                                    {% endif %}
+                                {% else %}
+                                <select class="form-control" name="clinic" style="width: 100%;" required>
+                                {% endif %}
                                     {% for clinic in clinics %}
                                     <option value="{{ clinic.0 }}">{{ clinic.1 }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                         </div>
-                            {% comment %}
+                        {% comment %}
                             <div class="col-sm-6">
                                 <label class="form-label">Contact Number</label>
                                 <input type="tel" class="form-control" name="number" placeholder="Contact Number" style="width: 100%;" pattern="[0-9]{10}" value="">
@@ -74,9 +78,11 @@
                             <div class="col-sm-6">
                                 <label class="form-label">Medical History</label>
                                 <textarea class="form-control" name="medical_history" placeholder="Medical History" style="width: 100%; resize: none;" rows="3" ></textarea>
-                            </div> {% endcomment %}
+                            </div>
+                        {% endcomment %}
+                        {% comment %}
                         <div class="row" style="margin-top: 10px;">
-                            {% comment %} <div class="col-sm-6">
+                            <div class="col-sm-6">
                                 <label class="form-label">Blood Group</label>
                                 <select class="form-control" style="width: 100%;" name="blood_group">
                                     <option value="">Select Blood Group</option>
@@ -89,18 +95,19 @@
                                     <option value="O+">O+</option>
                                     <option value="O+">O -</option>
                                 </select>
-                            </div> {% endcomment %}
-                            {% comment %} <div class="col-sm-6">
+                            </div>
+                            <div class="col-sm-6">
                                 <label class="form-label">Upload User Image</label><!-- application/pdf -->
                                 <input type="file" class="form-control" name="image" placeholder="Upload Image" style="width: 100%;" accept="image/*">
-                            </div> {% endcomment %}
-                          
-                            {% comment %} {% if request.user.profile_img %}
+                            </div>
+                            
+                            {% if request.user.profile_img %}
                             <div style="margin-top:20px; margin-left:10px;">
                                 <img src="{{request.user.profile_img.url}}" style="width:50px; height:50px;">
                             </div>
-                            {% endif %} {% endcomment %}
+                            {% endif %}
                         </div>
+                        {% endcomment %}
                         <button class="btn cb" id="create_user" name="create_user" type="submit" style="margin-top: 20px;">Submit</button>
                     </form>
                 </div>

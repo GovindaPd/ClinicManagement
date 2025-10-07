@@ -12,13 +12,12 @@ class CustomeUserAdmin(UserAdmin):
     ordering = ('date_joined',)
 
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
+        (_('Basic Info'), {'fields': ('username', 'password')}),
         (_('Personal Info'), {'fields': ('id', 'custom_id', 'first_name', 'last_name', 'email', 'phone',)}),
         (_('Additional Info'), {'fields': ('clinic', 'profile_img')}),
         (_('Permissions'), {'fields': ('is_active', 'is_superuser', 'is_admin', 'is_admin_staff', 'groups', 'user_permissions')}),
         (_('Read Only Fields'), {'fields': ('last_login', 'date_joined', 'updated_at')})
     )
-
     # include fields use either fields or exclude
     # fields = ('created_at', 'updated_at')
     

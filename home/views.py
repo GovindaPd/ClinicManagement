@@ -29,7 +29,8 @@ from .secret_variables import *
 
 import os
 import json
-from random import randint
+import string
+from random import randint, choices
 from urllib.parse import urlparse
 from collections import defaultdict
 
@@ -55,6 +56,36 @@ def get_url_name(full_url):
             return None
     else:
         return None
+
+def generate_password(length = 8):
+    """ generate password """
+    return ''.join(choices(string.ascii_letters+string.digits, k=length))
+
+
+def send_welcome_mail(request, user, clinic=None, default_password=None):
+    if request.user.is_superuser:
+        if user.is_admin:
+            subject = admin_welcome_subject
+            message = admin_welcome_mail.format(user.username, company_name, company_name)
+        elif user.is_admin_staff:
+            subject = admin_staff_welcome_subject.format(clinic.name)
+            message = admin_staff_welcome_mail.format(user.username, clinic.name, clinic.name)
+        else:
+            subject = all_welcome_subject.format(company_name)
+            message = all_welcome_message.format(user.username)
+
+    elif request.user.is_admin:
+        subject = admin_staff_welcome_subject.format(clinic.name)
+        message = admin_staff_welcome_mail.format(user.username, clinic.name, clinic.name)
+        
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email], 
+        fail_silently=True
+    )
+    
 
 def country_states(request):
     state = Region.objects.filter(country=1).order_by('name')
@@ -304,30 +335,26 @@ def change_user_password(request):
 
 @require_http_methods(["GET"])
 @login_required(login_url='login')
+@permission_required(['home.view_user'], raise_exception=True)
 def all_users(request):
-    if request.method == 'GET':
-        users = User.objects.none()
-        if request.user.is_superuser:
-            users = User.objects.exclude(username=request.user.username)
-        elif request.user.is_admin:
-            clinic = request.user.clinic
-            if clinic:
-                users = User.objects.filter(clinic=clinic).exclude(username=request.user.username)
-            else:
-                users = None
-        else:
-            return HttpResponseForbidden(forbidden_message)
-        
-        return render(request, 'user_list.html', {'users':users})
+    users = User.objects.none()
+    if request.user.is_superuser:
+        users = User.objects.exclude(username=request.user.username)
+    elif request.user.is_admin:
+        clinic = request.user.clinic
+        if clinic:
+            users = User.objects.filter(clinic=clinic).exclude(username=request.user.username)
+    else:
+        return HttpResponseForbidden(forbidden_message)
+    return render(request, 'user_list.html', {'users':users})
 
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
-def add_user(request):
-    if not any([request.user.is_superuser, request.user.is_admin]):
-        return HttpResponseForbidden(forbidden_message)
-    
+@permission_required(['home.add_user'], raise_exception=True)
+def add_user(request):    
     if request.method == 'GET':
+        clinics = Clinic.objects.none()
         if request.user.is_superuser:
             clinics = Clinic.objects.all().values_list('id','name')
         elif request.user.is_admin:
@@ -335,12 +362,15 @@ def add_user(request):
                 messages.error(request, "You do not have registerd clinic details")
                 return redirect('all_users')
             clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
-        return render(request, 'add_user.html', {'clinics':clinics})
+        return render(request, 'add_user.html', {'clinics':clinics, 'search_bar':False})
     
     if request.method == 'POST':
         is_admin = False
         is_admin_staff = False
-        default_password = "temp@1234"
+        default_password = generate_password(length=12)
+        clinic = None
+        clinic_exists = False
+        user_group = Group.objects.none()
 
         email = request.POST.get('email')
         username = request.POST.get('username')
@@ -349,28 +379,30 @@ def add_user(request):
         user_type = request.POST.get('user_type','')
         user_clinic = request.POST.get('clinic', None)
         
-        clinic = Clinic.objects.none()
-        clinic_exists = False
-        
         if user_clinic:
+            try:
+                user_clinic = int(user_clinic)
+            except (ValueError, TypeError):
+                messages.error("user clinic id is not integer")
+
             cl = Clinic.objects.filter(id=user_clinic)
             if cl.exists():
                 clinic = cl.first()
                 clinic_exists = True
         
         if request.user.is_superuser:
-            if user_type == 'admin':
+            if user_type == 'is_admin':
                 is_admin = True
+                user_group = Group.objects.filter(name="clinic_admin")
             elif user_type == 'is_admin_staff':
                 is_admin_staff = True
+                user_group = Group.objects.filter(name="clinic_staff")
                 if not clinic_exists:
                     messages.error(request, "You do not have selected any clinic.")
                     return redirect('all_users')
-            else:
-                messages.error(request, "user type is not defined")
-                return redirect('all_users')
         elif request.user.is_admin:
             is_admin_staff = True
+            user_group = Group.objects.filter(name="clinic_staff")
             if not clinic_exists:
                 messages.error(request, "You do not have selected any clinic.") 
                 return redirect('all_users')
@@ -389,10 +421,13 @@ def add_user(request):
                 is_admin    = is_admin,
                 is_admin_staff= is_admin_staff
             )
-        except IntegrityError as e:
+            if user_group.exists():
+                user.groups.set(user_group)
+                user.save()
+        except IntegrityError:
             messages.error(request, "Error with form data insertion.")
             return redirect('add_user')
-        except ValidationError as ve:
+        except ValidationError:
             messages.error(request, "Error with form data validation.")
             return redirect('add_user')
         except OperationalError:
@@ -401,114 +436,104 @@ def add_user(request):
         except ValueError:
             messages.error(request, "Form values are required.")
             return redirect('add_user')
-       
-        if request.user.is_superuser:
-            if user.is_admin:
-                subject = admin_welcome_subject
-                message = admin_welcome_mail.format(username, company_name, company_name),
-            elif user.is_admin_staff:
-                subject = admin_staff_welcome_subject.format(clinic.name),
-                message = admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
-        elif request.user.is_admin:
-            subject = admin_staff_welcome_subject.format(clinic.name),
-            message = admin_staff_welcome_mail.format(username, clinic.name, clinic.name),
-        else:
-            subject = "Welcome to {}".format(company_name)
-            message = "Your account has been created successfully. Please contact site administrator for login details."
-        
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email], 
-            fail_silently=True
-        )
+
+        send_welcome_mail(request, user, clinic)
         messages.success(request, f"{user.username} account has been created successfully. Default password is {default_password!r}")
-        return redirect('all_users') 
+        return redirect('all_users')
   
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
+@permission_required(['home.change_user', 'home.view_user'])
 def edit_user(request, user_id):
     user = User.objects.none()
     clinics = Clinic.objects.none()
+    clinic_exists = False
 
-    if request.method == "GET":
+    try:
         if request.user.is_superuser:
-            user = User.objects.filter(custom_id=user_id).first()
+            user = User.objects.prefetch_related('groups').get(custom_id=user_id)
             clinics = Clinic.objects.all().values_list('id','name')
         elif request.user.is_admin:
             if not request.user.clinic:
-                messages.error(request, "You do not have registerd clinic details")
+                messages.error(request, "You do not have registerd clinic details.")
                 return redirect('all_users')
-            user = User.objects.filter(custom_id=user_id, clinic=request.user.clinic_id).first()
-            clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
+            else:
+                user = User.objects.prefetch_related('groups').get(custom_id=user_id, clinic=request.user.clinic_id)
+                clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
         else:
             return HttpResponseForbidden(forbidden_message)
-        
-        if not user:
-            messages.error(request, "User not found with given id.")
-            return redirect('all_users')
-
-        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics})
+    except (User.DoesNotExist, User.MultipleObjectsReturned):
+        messages.error(request, "User not exist with given id.")
+        return redirect('all_users')
     
-    if request.method == 'POST':
-        if request.user.is_superuser:
-            user = User.objects.filter(custom_id=user_id).first()
-        elif request.user.is_admin:
-            if not request.user.clinic:
-                messages.error(request, "You do not have registerd clinic details")
-                return redirect('all_users')
-            user = User.objects.filter(custom_id=user_id, clinic=request.user.clinic_id).first()
-        else:
-            return HttpResponseForbidden(forbidden_message)
-        
-        if not user:
-            messages.error(request, "User not found with given id.")
-            return redirect('all_users')
-            
+    if request.method == "GET":
+        groups = Group.objects.exclude(id__in=user.groups.values_list('id', flat=True))
+        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics, 'groups':groups, 'search_bar':False})
+    
+    if request.method == 'POST':            
         username = request.POST.get('username')
         email = request.POST.get('email')
         first_name = request.POST.get('first_name','')
         last_name = request.POST.get('last_name','')
         user_type = request.POST.get('user_type','')
         user_clinic = request.POST.get('clinic', None)
-        
-        clinic = Clinic.objects.none()
-        clinic_exists = False
+        user_grp = request.POST.getlist('choosen_groups', [])
+        user_group = []
 
         if user_clinic:
+            try:
+                user_clinic = int(user_clinic)
+            except (ValueError, TypeError):
+                messages.error(request, "clinic id must be an integer.")
+            
             cl = Clinic.objects.filter(id=user_clinic)
             if cl.exists():
                 clinic = cl.first()
-                clinic_exists = True            
-            
+                clinic_exists = True
+
         if request.user.is_superuser:
-            if user_type == 'admin':
+            for gp in user_grp:
+                try:
+                    gp =int(gp)
+                    user_group.append(gp)
+                except (TypeError, ValueError):
+                    pass
+            grp_objs = Group.objects.filter(id__in=user_group) if user_group else []
+            if grp_objs:
+                user.groups.set(grp_objs)
+            else:
+                user.groups.clear()
+
+            if user_type == 'is_admin':
                 user.is_admin = True
                 user.is_admin_staff = False
+                if clinic_exists:
+                    user.clinic = clinic
             elif user_type == 'is_admin_staff':
                 user.is_admin = False
                 user.is_admin_staff = True
-                if not clinic_exists:
-                    messages.error(request, "You do not have selected any clinic.")
-                    return redirect('all_users')
-            else:
-                messages.error(request, "user type is not defined")
-                return redirect('all_users')
+                if clinic_exists:
+                    user.clinic = clinic
+                # else:
+                #     messages.error(request, "You do not have selected any clinic.")
+                #     return redirect('all_users')
         elif request.user.is_admin:
             user.is_admin_staff = True
-            if not clinic_exists:
+            if clinic_exists and request.user.clinic==clinic:
+                user.clinic = clinic
+            else:
                 messages.error(request, "You do not have selected any clinic.") 
                 return redirect('all_users')
         else:
             messages.error(request, "You do not have permission to add staff.")
             return redirect('all_users')
-        user.username = username
-        user.email = email
-        user.first_name = first_name
-        user.last_name = last_name
-        user.clinic = clinic
+        
+        user.username = username if username else user.username
+        user.email = email if email else user.email
+        user.first_name = first_name if first_name else user.first_name
+        user.last_name = last_name if last_name else user.last_name
+        
         try:
             user.save()
         except IntegrityError as e:
@@ -528,53 +553,75 @@ def edit_user(request, user_id):
         return redirect('all_users')
 
 
+@require_http_methods(["GET"])
 @login_required(login_url='login')
-def update_user_status(request):
-    if request.method == 'POST':
-        custom_id = request.POST.get('user_id')
-        try:
-            status = int(request.POST.get('status',''))
-            if not (status == 0 or status == 1):
-                raise ValueError("Value must be 0 or 1")
-        except ValueError:
-            return HttpResponseBadRequest()
-        
-        active,msg = (True, "'{}' account activated successfully.") if status else (False, "'{}' account deactivated successfully.")
-
+@permission_required(['home.delete_user'], raise_exception=True)
+def delete_user(request, user_id):
+    clinics = Clinic.objects.none()
+    try:
         if request.user.is_superuser:
-            users = User.objects.filter(custom_id=custom_id)
-            if users.exists():
-                user = users.last()
-                user.is_active = active
-                user.save()
-                messages.info(request, msg.format(user.username))
-            else:
-                messages.error(request, "User not found with given id.")  
+            user = User.objects.get(custom_id=user_id)
+            # also delete clinic if user is clinic admin if you want this functionality
         elif request.user.is_admin:
-            if request.user.clinic:
-                users = User.objects.filter(custom_id=custom_id, clinic=request.user.clinic_id)
-                if users.exists():
-                    user = users.last()
-                    user.is_active = active
-                    user.save()
-                    messages.info(request, msg.format(user.username))
-                else:
-                     messages.error(request, "User not found with given id.") 
-            else:
-                messages.error(request, "You do not have fill clinic details yet.") 
+            user = User.objects.get(custom_id=user_id, clinic=request.user.clinic_id)
+            if request.user.id == user.id:
+                messages.error(request, "You do not have permission to delete this account.")
         else:
-            return HttpResponseForbidden()
-        return redirect('all_users')
-    return HttpResponseBadRequest()          
+            user = User.objects.none()
+    except (User.DoesNotExist, User.MultipleObjectsReturned):
+        messages.error(request, "User does not exist with given id.")
+    
+    if user:
+        username = user.username
+        user.delete()
+        messages.success(request, f"{username} account deleted successfully.")
+    return redirect('all_users')
 
 
+@require_http_methods(["POST"])
+@login_required(login_url='login')
+@permission_required(['home.change_user'], raise_exception=True)
+def update_user_status(request):
+    custom_id = request.POST.get('user_id')
+    try:
+        status = int(request.POST.get('status',''))
+        if not (status == 0 or status == 1):
+            raise ValueError("Value must be 0 or 1")
+    except (ValueError, TypeError):
+        return HttpResponseBadRequest()
+        
+    active,msg = (True, "'{}' account activated successfully.") if status else (False, "'{}' account deactivated successfully.")
+    try:
+        if request.user.is_superuser:
+            user = User.objects.get(custom_id=custom_id)
+        elif request.user.is_admin:
+            if not request.user.clinic:
+                messages.error(request, "You do not have registerd clinic details.")
+                return redirect('all_users')
+            else:
+                user = User.objects.get(custom_id=custom_id, clinic=request.user.clinic_id)
+                if request.user.id == user.id:
+                    messages.error(request, "You do not have permission to deactivate this account.")
+        else:
+            return HttpResponseForbidden(forbidden_message)
+        user.is_active = active
+        user.save()
+        messages.info(request, msg.format(user.username))
+    except (User.DoesNotExist, User.MultipleObjectsReturned):
+        messages.error(request, "User not exist with given id.")
+    except IntegrityError:
+        messages.error(request, "Status not updated.Please try again.")
+    return redirect('all_users')   
+
+
+@require_http_methods(['GET', 'POST'])
 @login_required(login_url='login')
 def profile(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name',)
         last_name = request.POST.get('last_name')
 
-        user = User.objects.get(username=request.user.username)
+        user = request.user # User.objects.get(username=request.user.username)
         user.first_name = first_name
         user.last_name = last_name
 
@@ -582,7 +629,6 @@ def profile(request):
             profile_img = request.FILES['profile_img']
             if user.profile_img:
                 default_storage.delete(user.profile_img.path)
-                
             user.profile_img = profile_img
 
         user.save()
@@ -592,17 +638,74 @@ def profile(request):
     return render(request, 'profile.html', {'search_bar':False})
 
 
+@require_http_methods(["GET"])
+@login_required(login_url='login')
+@permission_required(['home.view_clinic'], raise_exception=True)
+def clinic(request):
+    clinics = Clinic.objects.none()
+    if request.user.is_superuser:
+        clinics = Clinic.objects.all()
+    return render(request, 'clinic.html', {'clinics':clinics})
+
+
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
-@permission_required(['home.view_clinic', 'home.add_clinic', 'home.change_clinic'], raise_exception=True)
-def clinic(request):
-    if request.method == 'GET':
-        if request.user.is_superuser:
-            clinics = Clinic.objects.all()
-        # elif request.user.is_admin:
-        #     clinics = request.user.
-        return render(request, 'clinic.html')
+@permission_required(['home.add_clinic'], raise_exception=True)
+def clinic_add(request):
+    if request.user.is_admin and request.user.clinic:
+        return redirect('clinic')
     
+    if request.method == "GET":
+        return render(request, 'clinic_add.html', {'search_bar':False})
+    
+    if request.method == "POST":
+        name = request.POST.get('clinic_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        number = request.POST.get('number', '').strip()
+        address = request.POST.get('address', '').strip()
+        state = request.POST.get('state', '')
+        city = request.POST.get('city', '')
+        pincode = request.POST.get('pincode', '')
+        specializations = request.POST.get('specializations', '').strip()
+        try:
+            cl = Clinic.objects.create(
+                name=name,
+                email=email,
+                number=number,
+                address=address,
+                pincode=pincode,
+                specializations=specializations,
+            )
+            try:
+                state= Region.objects.get(id=state)
+                city = City.objects.get(id=city)
+            except (Region.DoesNotExist, City.DoesNotExist):
+                messages.error(request, "State and City id does not exist.")
+                return render(request, 'clinic_add.html', {'search_bar':False})
+            
+            cl.state = state
+            cl.city = city
+            cl.save()
+            messages.success(request, f"Clinic {cl.name} add successfully.")
+        except IntegrityError:
+            messages.error(request, "Clinic does not created.")
+            return render(request, 'clinic_add.html', {'search_bar':False})
+        return redirect("clinic")
+
+
+@require_http_methods(["GET", "POST"])
+@login_required(login_url='login')
+@permission_required(['home.view_clinic', 'home.change_clinic'], raise_exception=True)
+def clinic_edit(request, clinic_id):
+    if request.method == 'GET':
+        try:
+            if request.user.is_superuser:
+                clinic = Clinic.objects.get(id=clinic_id)
+            elif request.user.is_admin:
+                clinic = request.user.clininc
+        except (Clinic.DoesNotExist, Clinic.MultipleObjectsReturned):
+            messages.error(request, "Clinic does not exist with given id.")
+
     if request.method == 'POST':
         if not request.user.is_admin:
             return HttpResponseForbidden()
@@ -653,6 +756,29 @@ def clinic(request):
         except Exception as error:
             messages.error(request, 'Error with form data.')
         return redirect('clinic')   
+
+
+@require_http_methods(["GET"])
+@login_required(login_url='login')
+@permission_required(['home.delete_clinic'], raise_exception=True)
+def clinic_delete(request, clinic_id):
+    try:
+        if request.user.is_admin:
+            if request.user.clinic and clinic_id == request.user.clinic_id:
+                cl = Clinic.objects.get(id=clinic_id)
+            else:
+                messages.error(request, 'User does not have clinic.')
+                return redirect("clinic")
+        else:
+            cl = Clinic.objects.get(id=clinic_id)
+        clinic_name = cl.name
+        cl.delete()
+        messages.success(request, f'"{clinic_name}" Clinic deleted successfully.')
+    except Clinic.DoesNotExist:
+        messages.error(request, 'Clinic does not exist with given id.')
+    except IntegrityError:
+        messages.error(request, 'Error occured in Clinic deletion.')
+    return redirect("clinic")
 
 
 @login_required(login_url='login')
@@ -1131,13 +1257,18 @@ def check_unique(request):
         message = None
 
         if field == 'email':
+            value = value.strip()
             exists = User.objects.filter(email=value).exists()  
         elif field == 'username':
+            value = value.strip()
             exists = User.objects.filter(username=value).exists()
         elif field == 'group_name':
             value = value.strip().lower().replace(" ","_")
             exists = Group.objects.filter(name=value).exists()
-        
+        elif field == "clinic_name":
+            value = value.strip()
+            exists = Clinic.objects.filter(name=value).exists()
+
         message = f"{field} is not available" if exists == True else f"{field} is available"
         return JsonResponse({'exists':exists, 'message':message}, status=200)
 

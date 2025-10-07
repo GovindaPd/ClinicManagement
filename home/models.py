@@ -100,7 +100,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username}"
-    
 
 
 class Clinic(models.Model):
@@ -211,7 +210,6 @@ class SeenNotification(models.Model):
     def __str__(self):
         return f"{self.seen_by.username} senn notification: {self.note.id}"
 
-
     
 # class RepetedAttempt(models.Model):
 #     ip_address = models.GenericIPAddressField()
@@ -235,7 +233,7 @@ class SeenNotification(models.Model):
     # def __str__(self):
     #     return f"Visibility settings for {self.user.username}"
 
-# forms.py
+
 # from django import forms
 # from .models import FieldVisibility
 

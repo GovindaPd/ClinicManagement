@@ -42,3 +42,10 @@ We look forward to welcoming you to the team!
 Warm regards,
 {}
 """
+
+all_welcome_subject = "Welcome to {}"
+all_welcome_message =  """Dear {},
+Congratulations! Your account, has been successfully added to our system. 
+
+Please contact site administrator for login details.
+"""
