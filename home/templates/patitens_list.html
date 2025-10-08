@@ -24,6 +24,10 @@
                         <th scope="col">Gender <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
                         <th scope="col">Number</th>
                         <th scope="col">Address</th>
+                        {% if request.user.is_superuser %}
+                        <th scope="col">Doctor <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+                        <th scope="col">Clinic <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+                        {% endif %}
                         <th scope="col">Medical History</th>
                         <th scope="col">Created Date <i class="fas fa-sort cstm-sort" onclick="reverse()"></i></th>
                         <th scope="col">Action</th>
@@ -42,6 +46,10 @@
                         <td>{{patient.gender}}</td>
                         <td>{{patient.number}}</td>
                         <td>{{patient.address}}</td>
+                        {% if request.user.is_superuser %}
+                        <td>{{patient.doctor}}</td>
+                        <td>{{patient.clinic}}</td>
+                        {% endif %}
                         <td>{{patient.medical_history}}</td>
                         <td>{{patient.created_at|date:"d-b-Y"}}</td>
                         <td style="">
@@ -69,8 +77,8 @@
                             <div class="modal-content">
                                 <div class="modal-header custome-m-dark">
                                     <h5 class="modal-title">Confirm Deletion</h5>
-                                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">X
-                                    </button>
+                                    <button type="button" class="cnav-btn" data-dismiss="modal" aria-label="Close" title="Close"><i class="fa fa-window-close"></i></button>
+
                                 </div>
                                 <div class="modal-body">
                                     <p>Are you sure you want to delete this record? This action cannot be undone. It will aslo delete all visits.</p>

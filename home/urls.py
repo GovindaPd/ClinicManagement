@@ -11,11 +11,9 @@ urlpatterns = [
     # forget password in three steps
     path('password-reset/', views.password_reset, name='password_reset'),
     path('password-reset/done/', views.password_reset_done, name="password_reset_done"),
-    path("reset/<uid64>/<token>/", views.password_reset_confirm, name="password_reset_confirm"),   
-    
+    path("reset/<uid64>/<token>/", views.password_reset_confirm, name="password_reset_confirm"),
     # change password
     path('change-user-password/', views.change_user_password, name='change_user_password'),
-    
     path('user/profile/', views.profile, name='profile'),
 
     path('users/', views.all_users, name='all_users'),

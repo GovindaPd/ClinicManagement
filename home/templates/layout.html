@@ -252,18 +252,22 @@
                 </a>
             </li>
         {% endif %}
+        {% if perms.home.view_patient %}
             <li class="nav-item">
                 <a class="nav-link " href="{% url 'patients' %}" aria-expanded="true" >
                     <i class="fas fa-fw fa-user"></i>
                     <span>Patients</span>
                 </a>
             </li>
+        {% endif %}
+        {% if perms.home.view_notification %}
             <li class="nav-item">
                 <a class="nav-link " href="{% url 'notifications' %}" aria-expanded="true" >
                     <i class="fas fa-envelope-open-text"></i>
                     <span>Notification</span>
                 </a>
             </li>
+        {% endif %}
             
             <!-- Nav Item - Utilities Collapse Menu -->
             <li class="nav-item">
@@ -315,7 +319,7 @@
                     </button>
 
                     <!-- Topbar Search -->
-                    {% if search_bar|default:True %}
+                    {% if search_bar|default:"true" == "true" %}
                     <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
                         <div class="input-group">
                             <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
@@ -554,7 +558,7 @@
             <div class="modal-content">
                 <div class="modal-header custome-m-dark">
                     <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
-                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">X</button>
+                    <button type="button" class="cnav-btn" data-dismiss="modal" aria-label="Close" title="Close"><i class="fa fa-window-close"></i></button>
                 </div>
                 <div class="modal-body">Click on "Logout" below if you are ready to end your current session.</div>
                 <div class="modal-footer">
@@ -643,7 +647,7 @@
             let message_string = '';
             let img = '';
             
-            fetch('/get-receive-notifications/')
+            fetch('{% url 'get_receive_notifications' %}')
             .then(response => response.json())
             .then(data => {
                 for (let note of data.notes){
@@ -698,7 +702,7 @@
             }
             else{
                 element.style.fontWeight = 'normal';
-                fetch(`/mark-as-seen/${noteId}/`)
+                fetch(`/notifications/mark-as-seen/${noteId}/`)
                 .then(response => response.json())
                 .then(data => {
                     // reduce the number of unread notifications

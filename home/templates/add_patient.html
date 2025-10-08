@@ -10,7 +10,7 @@
                 <hr>
                 
                 <div class="justify-content-center">                  
-                    <form method="POST" action="{% url 'add_new_patient' %}" enctype="multipart/form-data" id="profile_form">
+                    <form method="POST" action="{% url 'add_new_patient' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6"><label class="form-label">Name</label>
@@ -66,14 +66,39 @@
                                 <label class="form-label">Upload Patient Report Image</label><!-- application/pdf -->
                                 <input type="file" class="form-control" name="image" placeholder="Upload Image" style="width: 100%;" accept="image/*">
                             </div>
-                          
-                            {% comment %} {% if request.user.profile_img %}
+                        {% comment %}
+                            {% if request.user.profile_img %}
                             <div style="margin-top:20px; margin-left:10px;">
                                 <img src="{{request.user.profile_img.url}}" style="width:50px; height:50px;">
                             </div>
-                            {% endif %} {% endcomment %}
-                        </div>  
-                        <button class="btn cb" id="update_profile" name="profile_submit" type="submit" style="margin-top: 10px;">Submit</button>
+                            {% endif %}
+                        {% endcomment %}
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6">
+                                <label class="form-label">Clinic</label>
+                                <select class="form-control" style="width: 100%;" name="clinic" required>
+                                  {% for clinic in clinics %}
+                                    <option value="{{clinic.id}}">{{clinic.name}}</option>
+                                  {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Doctor</label>
+                                <select class="form-control" style="width: 100%;" name="doctor" required>
+                                  {% for doctor in doctors %}
+                                    {% if doctor.0 == request.user.custome_id %}
+                                      <option value="{{doctor.0}}" selected>{{doctor.1}}</option>
+                                    {% else %}
+                                      <option value="{{doctor.0}}">{{doctor.1}}</option>
+                                    {% endif %}
+                                  {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 20px; margin-bottom: 20px; padding-left:10px;">
+                            <button class="btn cb" name="profile_submit" type="submit" style="width: 10rem;">Save</button>
+                        </div>
                     </form>
                 </div>
 

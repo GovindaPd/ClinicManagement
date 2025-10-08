@@ -77,9 +77,63 @@
                                 <img src="{{patient.image.url}}" alt="report" style="width:50px; height:50px;">
                             </div>
                           {% endif %}
-                        </div>  
-                        <button class="btn cb" id="update_patient" name="update_patient" type="submit" style="margin-top: 10px;">Submit</button>
+                        </div>
+                        <div class="row" style="margin-top: 10px;">
+                            <div class="col-sm-6">
+                                <label class="form-label">Clinic</label>
+                                <select class="form-control" style="width: 100%;" name="clinic" required>
+                                  {% for clinic in clinics %}
+                                    <option value="{{clinic.id}}">{{clinic.name}}</option>
+                                  {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Doctor</label>
+                                <select class="form-control" style="width: 100%;" name="doctor" required>
+                                  {% for doctor in doctors %}
+                                    {% if doctor.2 == patient.doctor_id %}
+                                      <option value="{{doctor.0}}" selected>{{doctor.1}}</option>
+                                    {% else %}
+                                      <option value="{{doctor.0}}">{{doctor.1}}</option>
+                                    {% endif %}
+                                  {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div style="padding:20px 20px 20px 0px;">
+                            <button class="btn cb" type="submit" style="">Save</button>
+                            <a data-url="{% url 'delete_patient' patient.id %}" class="btn cb" title="Delete Record"  data-toggle="modal" data-target="#deleteConfirmModal"  onclick="showDeleteModal(this)">
+                                Delete
+                            </a>
+                        </div>
                     </form>
+                    
+                    <!--Patient delete confirmation modal -->
+                    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header custome-m-dark">
+                                    <h5 class="modal-title">Confirm Deletion</h5>
+                                    <button type="button" class="cnav-btn" data-dismiss="modal" aria-label="Close" title="Close"><i class="fa fa-window-close"></i></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete this Group? This action cannot be undone.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <a id="confirmDeleteBtn" class="btn btn-danger" href="#">Delete</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- end Patient modal -->
                 </div>
-
+                
+                <script>
+                    function showDeleteModal(element) {
+                        let deleteUrl = element.getAttribute("data-url");
+                        console.log(deleteUrl)
+                        document.getElementById("confirmDeleteBtn").href = deleteUrl;
+                    }
+                </script>
             {% endblock %}

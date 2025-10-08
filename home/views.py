@@ -362,7 +362,7 @@ def add_user(request):
                 messages.error(request, "You do not have registerd clinic details")
                 return redirect('all_users')
             clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
-        return render(request, 'add_user.html', {'clinics':clinics, 'search_bar':False})
+        return render(request, 'add_user.html', {'clinics':clinics, 'search_bar':"flase"})
     
     if request.method == 'POST':
         is_admin = False
@@ -469,7 +469,7 @@ def edit_user(request, user_id):
     
     if request.method == "GET":
         groups = Group.objects.exclude(id__in=user.groups.values_list('id', flat=True))
-        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics, 'groups':groups, 'search_bar':False})
+        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics, 'groups':groups, 'search_bar':"flase"})
     
     if request.method == 'POST':            
         username = request.POST.get('username')
@@ -635,7 +635,7 @@ def profile(request):
         messages.success(request, f'{user.username} Profile updated successfully.')
         return redirect('profile')
 
-    return render(request, 'profile.html', {'search_bar':False})
+    return render(request, 'profile.html', {'search_bar':"flase"})
 
 
 @require_http_methods(["GET"])
@@ -656,7 +656,7 @@ def clinic_add(request):
         return redirect('clinic')
     
     if request.method == "GET":
-        return render(request, 'clinic_add.html', {'search_bar':False})
+        return render(request, 'clinic_add.html', {'search_bar':"flase"})
     
     if request.method == "POST":
         name = request.POST.get('clinic_name', '').strip()
@@ -665,7 +665,7 @@ def clinic_add(request):
         address = request.POST.get('address', '').strip()
         state = request.POST.get('state', '')
         city = request.POST.get('city', '')
-        pincode = request.POST.get('pincode', '')
+        pincode = request.POST.get('pincode', '').strip()
         specializations = request.POST.get('specializations', '').strip()
         try:
             cl = Clinic.objects.create(
@@ -681,7 +681,7 @@ def clinic_add(request):
                 city = City.objects.get(id=city)
             except (Region.DoesNotExist, City.DoesNotExist):
                 messages.error(request, "State and City id does not exist.")
-                return render(request, 'clinic_add.html', {'search_bar':False})
+                return render(request, 'clinic_add.html', {'search_bar':"flase"})
             
             cl.state = state
             cl.city = city
@@ -689,73 +689,65 @@ def clinic_add(request):
             messages.success(request, f"Clinic {cl.name} add successfully.")
         except IntegrityError:
             messages.error(request, "Clinic does not created.")
-            return render(request, 'clinic_add.html', {'search_bar':False})
+            return render(request, 'clinic_add.html', {'search_bar':"flase"})
         return redirect("clinic")
 
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
-@permission_required(['home.view_clinic', 'home.change_clinic'], raise_exception=True)
+@permission_required(['home.change_clinic'], raise_exception=True)
 def clinic_edit(request, clinic_id):
-    if request.method == 'GET':
-        try:
-            if request.user.is_superuser:
+    try:
+        if request.user.is_superuser:
+            clinic = Clinic.objects.get(id=clinic_id)
+        elif request.user.is_admin:
+            if request.user.clinic and clinic_id == request.user.clinic_id:
                 clinic = Clinic.objects.get(id=clinic_id)
-            elif request.user.is_admin:
-                clinic = request.user.clininc
-        except (Clinic.DoesNotExist, Clinic.MultipleObjectsReturned):
-            messages.error(request, "Clinic does not exist with given id.")
-
-    if request.method == 'POST':
-        if not request.user.is_admin:
-            return HttpResponseForbidden()
+            else:
+                messages.error(request, 'User does not have clinic.')
+                return redirect("clinic")
+        else:
+            clinic = Clinic.objects.get(id=clinic_id)      
+    except (Clinic.DoesNotExist, Clinic.MultipleObjectsReturned):
+        messages.error(request, "Clinic does not exist with given id.")
+        return redirect("clinic")
+    
+    if request.method == 'GET':
+        return render(request, "clinic_edit.html", {'clinic':clinic, 'search_bar':"flase"})
         
-        name        = request.POST.get('name', '')
+    if request.method == 'POST':
+        name        = request.POST.get('clinic_name', '').strip()
+        email       = request.POST.get('email', '').strip()
+        number      = request.POST.get('number' '').strip()
+        address     = request.POST.get('address', '').strip()
         state       = request.POST.get('state', '')
         city        = request.POST.get('city', '')
-        pincode     = request.POST.get('pincode', '')
-        address     = request.POST.get('address', '')
-        email       = request.POST.get('email', '')
-        number      = request.POST.get('number' '')
-        specializations = request.POST.get('specializations', '')
+        pincode     = request.POST.get('pincode', '').strip()   
+        specializations = request.POST.get('specializations', '').strip()
 
-        if state:
-            state = get_object_or_404(Region, id=state)
-        if city:
-            city = get_object_or_404(City, region=state, id=city)
-
-        if request.user.is_admin:
-            user = request.user
-            clinic = Clinic.objects.filter(id=request.user.clinic_id).first()
+        clinic.name     = name
+        clinic.email    = email
+        clinic.number   = number
+        clinic.address  = address
+        clinic.pincode  = pincode
+        clinic.specializations = specializations
         try:
-            if clinic:
-                clinic.name     = name
-                clinic.state    = state
-                clinic.city     = city
-                clinic.pincode  = pincode
-                clinic.address  = address
-                clinic.email    = email
-                clinic.number   = number
-                clinic.specializations = specializations
-                clinic.save()
-            else:
-                clinic = Clinic.objects.create(
-                    name     = name,
-                    state    = state,
-                    city     = city,
-                    pincode  = pincode,
-                    address  = address,
-                    email    = email,
-                    number   = number,
-                    specializations = specializations
-                )
-                user.clinic = clinic
-                user.save()
-                
-            messages.success(request, 'Clinic details updated successfully.')
-        except Exception as error:
-            messages.error(request, 'Error with form data.')
-        return redirect('clinic')   
+            if state != clinic.state_id:
+                state= Region.objects.get(id=state)
+                clinic.state = state
+            if city != clinic.city_id:
+                city = City.objects.get(id=city)
+                clinic.city = city
+
+            clinic.save()
+            messages.success(request, f"{clinic.name} Clinic updated successfully.")
+        except (Region.DoesNotExist, City.DoesNotExist):
+            messages.error(request, "State and City id does not exist.")
+            return render(request, 'clinic_edit.html', {'clinic':clinic, 'search_bar':"flase"}) 
+        except IntegrityError:
+            messages.error(request, "Clinic does not updated.")
+            return render(request, 'clinic_edit.html', {'clinic':clinic, 'search_bar':"flase"})  
+        return redirect('clinic')
 
 
 @require_http_methods(["GET"])
@@ -763,7 +755,9 @@ def clinic_edit(request, clinic_id):
 @permission_required(['home.delete_clinic'], raise_exception=True)
 def clinic_delete(request, clinic_id):
     try:
-        if request.user.is_admin:
+        if request.user.is_superuser:
+            cl = Clinic.objects.get(id=clinic_id)
+        elif request.user.is_admin:
             if request.user.clinic and clinic_id == request.user.clinic_id:
                 cl = Clinic.objects.get(id=clinic_id)
             else:
@@ -782,105 +776,123 @@ def clinic_delete(request, clinic_id):
 
 
 @login_required(login_url='login')
+@permission_required(['home.view_patient'], raise_exception=True)
 def patients(request):
     if request.method == 'GET':
-        if request.user.is_admin:
-            clinic = Clinic.objects.filter(id=request.user.clinic_id).first()
-            if not clinic:
-                clinic      = Clinic.objects.none()
-                patients    = Patient.objects.none()
-            else:
-                patients = Patient.objects.filter(clinic=clinic).order_by('-created_at')
-        elif request.user.is_superuser:
-            clinic = Clinic.objects.all()
+        patients = Patient.objects.none()
+        if request.user.is_superuser:
             patients = Patient.objects.all()
-
-        context = {
-            'clinic': clinic,
-            'patients': patients,
-        }
-        return render(request, 'patitens_list.html', context)
+        else:
+            if request.user.clinic:
+                patients = Patient.objects.filter(clinic=request.user.clinic_id).order_by('-created_at')
+        return render(request, 'patitens_list.html', {'patients':patients})
     return HttpResponseBadRequest()
 
 
+@require_http_methods(['GET', 'POST'])
 @login_required(login_url='login')
-def add_new_patient(request):
-    if request.user.is_admin:
-        if request.method == 'GET':
-            if not request.user.clinic:
-                messages.error(request, "You have not fill your clinic details yet.")
-                return redirect('patients')
-            return render(request, 'add_new_patient.html')
-        
-        if request.method == 'POST':
-            doctor      = request.user
-            clinic      = request.user.clinic
-            
-            if not clinic:
-                messages.error(request, "You are not joined to any clinic.")
-                return redirect('patients')
-            
-            name        = request.POST.get('name')
-            age         = request.POST.get('age') or None
-            gender      = request.POST.get('gender')
-            number      = request.POST.get('number')
-            address     = request.POST.get('address')
-            medical_history = request.POST.get('medical_history')
-            blood_group = request.POST.get('blood_group')
-        
-            try:
-                patient = Patient.objects.create(
-                        doctor          = doctor,
-                        clinic          = clinic,
-                        name            = name,
-                        age             = age,
-                        gender          = gender,
-                        number          = number,
-                        address         = address,
-                        medical_history = medical_history,
-                        blood_group     = blood_group
-                    )
-                
-                if 'image' in request.FILES:
-                    image = request.FILES['image']
-                    patient.image = image
-                    patient.save()
-                messages.success(request, f"Patient {patient.name!r} added successfully.")
-            except Exception as error:
-                messages.error(request, "There is an error with form data.")
+@permission_required(['home.add_patient'], raise_exception=True)
+def add_new_patient(request):        
+    if request.method == 'POST':
+        name        = request.POST.get('name','').strip()
+        age         = request.POST.get('age') or None
+        gender      = request.POST.get('gender','').strip()
+        number      = request.POST.get('number','').strip()
+        address     = request.POST.get('address','').strip()
+        medical_history= request.POST.get('medical_history','').strip()
+        blood_group = request.POST.get('blood_group','').strip()
+        doctor_id   = request.POST.get('doctor')
+        clinic_id   = request.POST.get('clinic')
 
+        try:
+            if request.user.is_superuser:
+                clinic = Clinic.objects.get(id=clinic_id)
+                doctor = User.objects.get(custom_id=doctor_id, clinic=clinic_id)
+            else:
+                if not request.user.clinic:
+                    messages.error(request, "You are not register to any clinic.")
+                    return redirect('patients')
+                else:
+                    clinic = Clinic.objects.get(id=request.user.clinic_id)
+                    doctor = User.objects.get(custom_id=doctor_id)
+        except (User.DoesNotExist, Clinic.DoesNotExist):
+            messages.error(request, "Doctor and Clinic id does not exist or Doctor should be in Clinic.")
             return redirect('patients')
-    else:
-        return HttpResponseForbidden()
+        except Exception as e:
+            messages.error(request, "Clinic and Doctor does not exist with given id")
+            return redirect('patients')
         
-
-@login_required(login_url='login')
-def edit_patient(request, patient_id):
-    if request.method == 'GET':
-        clinic = request.user.clinic
-        doctor = request.user
+        try:
+            patient = Patient.objects.create(
+                doctor          = doctor,
+                clinic          = clinic,
+                name            = name,
+                age             = age,
+                gender          = gender,
+                number          = number,
+                address         = address,
+                medical_history = medical_history,
+                blood_group     = blood_group
+            )
+            if 'image' in request.FILES:
+                image = request.FILES['image']
+                patient.image = image
+                patient.save()
+            messages.success(request, f"Patient {patient.name!r} added successfully.")
+            return redirect('patients')
+        except IntegrityError:
+            messages.error(request, "There is an error with form data.")
     
-        if request.user.is_admin:
-            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
-        # elif request.user.is_new_staff:
-        #     patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
-        return render(request, 'edit_patient.html', {'patient':patient})
+    # common for POST and GET Methods
+    clinics = Clinic.objects.none()
+    doctors = User.objects.none()
+    if request.user.is_superuser:
+        clinics = Clinic.objects.all()
+        doctors = User.objects.filter(clinic__isnull=False).values_list('custom_id','username')
+    else:
+        if not request.user.clinic:
+            messages.error(request, "You are not register to any clinic.")
+            return redirect('patients')
+        else:
+            clinics = Clinic.objects.filter(id=request.user.clinic_id)
+            doctors = User.objects.filter(clinic__in=clinics).values_list('custom_id','username')
+    return render(request, 'add_patient.html', {'clinics':clinics, 'doctors':doctors, 'search_bar':"flase"})
+
+
+@require_http_methods(['GET', 'POST'])
+@login_required(login_url='login')
+@permission_required(['home.change_patient'], raise_exception=True)
+def edit_patient(request, patient_id):
+    clinics = Clinic.objects.none()
+    doctors = User.objects.none()
+    if request.user.is_superuser:
+        patient = get_object_or_404(Patient, id=patient_id)
+        clinics = Clinic.objects.all()
+        doctors = User.objects.filter(clinic__isnull=False).values_list('custom_id','username','id')
+    else:
+        if not request.user.clinic:
+            messages.error(request, "You are not register to any clinic.")
+            return redirect('patients')
+        else:
+            patient = get_object_or_404(Patient, id=patient_id, clinic=request.user.clinic_id)  #for specific doctor=request.user_id 
+            clinics = Clinic.objects.filter(id=request.user.clinic_id)
+            doctors = User.objects.filter(clinic__in=clinics).values_list('custom_id','username','id')
+
+    if request.method == 'GET':
+        return render(request, 'edit_patient.html', {'patient':patient, 'clinics':clinics, 'doctors':doctors, 'search_bar':"flase"})
 
     if request.method == 'POST':
-        name        = request.POST.get('name')
-        age         = request.POST.get('age')
-        gender      = request.POST.get('gender')
-        number      = request.POST.get('number')
-        address     = request.POST.get('address')
-        medical_history = request.POST.get('medical_history')
-        blood_group = request.POST.get('blood_group')
+        name        = request.POST.get('name').strip()
+        age         = request.POST.get('age').strip()
+        gender      = request.POST.get('gender').strip()
+        number      = request.POST.get('number').strip()
+        address     = request.POST.get('address').strip()
+        medical_history = request.POST.get('medical_history').strip()
+        blood_group = request.POST.get('blood_group').strip()
         image       = request.FILES.get('image')
-
-        if request.user.is_admin:
-            doctor = request.user
-            clinic = request.user.clinic
+        doctor_id   = request.POST.get('doctor')
+        clinic_id   = request.POST.get('clinic')
         
-        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
         try:
             patient.name        = name
             patient.age         = age
@@ -894,34 +906,57 @@ def edit_patient(request, patient_id):
                 if patient.image:
                     default_storage.delete(patient.image.path)
                     patient.image = image
+            
+            if request.user.is_superuser:
+                if patient.clinic_id != clinic_id:
+                    cl = Clinic.objects.get(id=clinic_id)
+                    patient.clinic = cl
+                if patient.doctor_id != doctor_id:
+                    patient.doctor = User.objects.get(custom_id=doctor_id, clinic=cl.id)
+            else:
+                if not request.user.clinic:
+                    messages.error(request, "You are not register to any clinic.")
+                    return redirect('patients')
+                else:
+                    if patient.doctor_id != doctor_id:
+                        patient.doctor = User.objects.get(custom_id=doctor_id, clinic=request.user.clinic_id)
+                    # clinic = Clinic.objects.get(id=request.user.clinic_id) #clinic would be same so no need to change
+            
             patient.save()
             messages.success(request, f"Patient {patient.name!r} updates successfully.")
+            return redirect('patients')
+        except (User.DoesNotExist, Clinic.DoesNotExist):
+            messages.error(request, "Doctor and Clinic id does not exist or Doctor should be in Clinic.")
+        except IntegrityError:
+            messages.error(request, "There is an error with form data.")
         except Exception as error:
             messages.error(request, "There is an error with form data.")
-
-        return redirect('patients')
-
-
-@login_required(login_url='login')
-def delete_patient(request, patient_id):
-    if request.method == 'GET':
-        patient = None
-        if request.user.is_admin:
-            clinic = request.user.clinic
-            doctor = request.user
-            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)  #patinet of perticuler doctor
+        return render(request, 'edit_patient.html', {'patient':patient, 'clinics':clinics, 'doctors':doctors, 'search_bar':"flase"})
         
-        elif request.user.is_admin_staff:
-            clinic = request.user.clinic
-            doctor = request.user
-            patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
 
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+@permission_required(['home.delete_patient'], raise_exception=True)
+def delete_patient(request, patient_id):
+    try:
+        patient = None
+        if request.user.is_superuser:
+            patient = Patient.objects.get(id=patient_id)
+        else:
+            if not request.user.clinic:
+                messages.error(request, "You are not register to any clinic.")
+                return redirect('patients')
+            else:
+                patient = Patient.objects.get(id=patient_id, clinic=request.user.clinic_id)
         if patient:
             patient_name = patient.name
             patient.delete()
-            messages.success(request, f"Patient {patient_name!r} deleted successfully.")
-        return redirect ('patients')
-    return HttpResponseBadRequest()
+            messages.success(request, f"Patient {patient_name!r} records deleted successfully.")
+    except Patient.DoesNotExist:
+        messages.error(request, f"Patient does not exist with given id.") 
+    except IntegrityError:
+        messages.error(request, "Error occurred in patient record deletion.")        
+    return redirect ('patients')
 
 
 @require_http_methods(['GET'])

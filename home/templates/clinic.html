@@ -68,8 +68,8 @@
             <th scope="col">Email <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
             <th scope="col">Number</th>
             <th scope="col">Address</th>
-            <th scope="col">State <i class="fas fa-sort cstm-sort" onclick="reverse()"></i></th>
-            <th scope="col">City <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th>
+            {% comment %} <th scope="col">State <i class="fas fa-sort cstm-sort" onclick="reverse()"></i></th>
+            <th scope="col">City <i class="fas fa-sort cstm-sort" onclick="sortTable(this)"></i></th> {% endcomment %}
             <th scope="col">Pincode</th>
             <th scope="col">Specializations</th>
             <th scope="col">Action</th>
@@ -84,9 +84,14 @@
             <td>{{clinic.name}}</td>
             <td>{{clinic.email}}</td>
             <td>{{clinic.number}}</td>
-            <td>{{clinic.address}}</td>
-            <td>{{clinic.state}}</td>
-            <td>{{clinic.city}}</td>
+            <td>
+                {% if clinic.address %}
+                  {{clinic.address}}, {{clinic.city }}
+                {% else %}
+                  {{clinic.address}}
+                {% endif %}</td>
+            {% comment %} <td>{{clinic.state}}</td>
+            <td>{{clinic.city}}</td> {% endcomment %}
             <td>{{clinic.pincode}}</td>
             <td>{{clinic.specializations}}</td>
             <td>
@@ -357,4 +362,4 @@
         });
     /* end Clinic details model and form javascript */
     </script>
-    -->
+-->
