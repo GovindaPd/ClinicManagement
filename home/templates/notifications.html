@@ -37,8 +37,11 @@
                         {% endif %}
                         <td>
                           {% if note.receivers|length > 2 %}
-                            {{ note.receivers|slice:":2"|join:", " }} 
-                            <span data-bs-toggle="tooltip" title="{{ note.receivers|join:', ' }}">+{{ note.receivers|length|add:"-2" }}more</span>
+                            {{ note.receivers|slice:":2"|join:", " }}
+                            <span class="custom-tooltip" data-tooltip="{{ note.receivers|join:', ' }}">
+                                +{{ note.receivers|length|add:"-2" }} more
+                            </span>
+                            {% comment %} <span data-bs-toggle="tooltip" title="{{ note.receivers|join:', ' }}">+{{ note.receivers|length|add:"-2" }}more</span> {% endcomment %}
                           {% else %}
                             {{ note.receivers|join:", " }}
                           {% endif %}

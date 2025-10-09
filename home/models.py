@@ -136,7 +136,6 @@ class Patient(models.Model):
         ('AB+','AB+'),
         ('AB-','AB-')  
     )
-
     doctor      = models.ForeignKey(User, related_name="patients", on_delete=models.CASCADE)
     clinic      = models.ForeignKey(Clinic, related_name='clinic_patients', on_delete=models.CASCADE)
     name        = models.CharField(max_length=255, null=False, blank=False)
@@ -166,7 +165,7 @@ class Prescription(models.Model):
         ('Pending', 'Pending'),
         ('Partial Paid', 'Partial Paid'),
     )
-    patient     = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE)
+    patient     = models.ForeignKey(Patient, related_name="records", on_delete=models.CASCADE, null=False, blank=False)
     symptoms    = models.TextField(blank=True)
     prescription= models.TextField(blank=True)
     # dosage = models.CharField(max_length=50)
@@ -176,6 +175,11 @@ class Prescription(models.Model):
     status      = models.CharField(max_length=15, choices=PAYMENT_STATUS, default='Paid')
     visit_date  = models.DateTimeField(auto_now_add=True)
     next_visit  = models.DateField(blank=True, null=True)
+
+    # class Meta:
+    #     permission = [
+    #         ("can_clear_pending", "Can Clear Pending"),
+    #     ]
 
     def delete(self, *args, **kwargs):
         if self.image:

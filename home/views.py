@@ -19,7 +19,6 @@ from django.db.models import Count, Exists, OuterRef, F, Q, Sum
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import Group, Permission
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
-
 from cities_light.models import Country, Region, City
 
 from .models import  User, Clinic, Patient, Prescription, Notification, SeenNotification
@@ -46,21 +45,20 @@ def generate_otp():
 
 def get_url_name(full_url):
     """ return url name """
+    url = None
     if full_url:
         parsed_url = urlparse(full_url)
         path = parsed_url.path
         try:
             url_match = resolve(path)
-            return url_match.url_name
+            url = url_match.url_name
         except Exception:
-            return None
-    else:
-        return None
+            pass
+    return url
 
 def generate_password(length = 8):
     """ generate password """
     return ''.join(choices(string.ascii_letters+string.digits, k=length))
-
 
 def send_welcome_mail(request, user, clinic=None, default_password=None):
     if request.user.is_superuser:
@@ -73,11 +71,10 @@ def send_welcome_mail(request, user, clinic=None, default_password=None):
         else:
             subject = all_welcome_subject.format(company_name)
             message = all_welcome_message.format(user.username)
-
     elif request.user.is_admin:
         subject = admin_staff_welcome_subject.format(clinic.name)
         message = admin_staff_welcome_mail.format(user.username, clinic.name, clinic.name)
-        
+       
     send_mail(
         subject=subject,
         message=message,
@@ -101,6 +98,20 @@ def state_cities(request, region=None):
     else:
         return JsonResponse({'cities':[]}, status=200)
 
+# if user.is_password_reset:
+#     messages.info(request, "We have send a password reset link to your email.")
+#     token = TokenGenerator().generate_token(user)
+#     reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
+    
+#     send_mail(
+#         subject="Password Reset Request",
+#         message=f"Click the link below to reset your password:\n\n{reset_url}",
+#         from_email=settings.DEFAULT_FROM_EMAIL,
+#         recipient_list=[user.email],
+#     )
+#     return redirect('login')
+
+# rVJhhmm1lWbI
 
 # -------------- views start here -----------------
 @require_http_methods(["GET", "POST"])
@@ -110,7 +121,7 @@ def login_in(request):
         return render(request, 'login.html')
     
     elif request.method == "POST":
-        username = request.POST.get('username')
+        username = request.POST.get('username','').strip().lower()
         password = request.POST.get('password')
         remember_me = request.POST.get('remember_me')
         user = authenticate(request, username=username, password=password)
@@ -118,20 +129,7 @@ def login_in(request):
         if user is None:
             messages.error(request, "Invalid Credentionals!")
             return render(request, 'login.html')
-        
-        # if user.is_password_reset:
-            #     messages.info(request, "We have send a password reset link to your email.")
-            #     token = TokenGenerator().generate_token(user)
-            #     reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
-                
-            #     send_mail(
-            #         subject="Password Reset Request",
-            #         message=f"Click the link below to reset your password:\n\n{reset_url}",
-            #         from_email=settings.DEFAULT_FROM_EMAIL,
-            #         recipient_list=[user.email],
-            #     )
-            #     return redirect('login')
-               
+                       
         login(request, user)
         update_last_login(None, user)
 
@@ -139,12 +137,13 @@ def login_in(request):
             request.session.set_expiry(3600 * 24 * 30)  #30 days in seconds
 
         if user.is_superuser:
-            # return redirect('/admin/')
-            pass
+            return redirect('index')    # return redirect('/admin/')
         elif user.is_admin:
-            pass
-        
-        return redirect('home')
+            return redirect('index')
+        elif user.is_admin_staff:
+            return redirect('patients')
+        else:
+            return redirect('index')
 
 
 @require_http_methods(["GET"])
@@ -257,7 +256,7 @@ def password_reset(request):
         return render(request, 'password_reset.html')
     
     elif request.method == 'POST':
-        email = request.POST.get('email')
+        email = request.POST.get('email').strip().lower()
         if not email:
             messages.error(request, "Invalid email!")
             return render(request, 'password_reset.html')
@@ -362,7 +361,7 @@ def add_user(request):
                 messages.error(request, "You do not have registerd clinic details")
                 return redirect('all_users')
             clinics = Clinic.objects.filter(id = request.user.clinic_id).values_list('id','name')
-        return render(request, 'add_user.html', {'clinics':clinics, 'search_bar':"flase"})
+        return render(request, 'add_user.html', {'clinics':clinics, 'search_bar':"false"})
     
     if request.method == 'POST':
         is_admin = False
@@ -372,10 +371,10 @@ def add_user(request):
         clinic_exists = False
         user_group = Group.objects.none()
 
-        email = request.POST.get('email')
-        username = request.POST.get('username')
-        first_name = request.POST.get('first_name','')
-        last_name = request.POST.get('last_name','')
+        email = request.POST.get('email').strip().lower()
+        username = request.POST.get('username','').strip()
+        first_name = request.POST.get('first_name','').strip()
+        last_name = request.POST.get('last_name','').strip()
         user_type = request.POST.get('user_type','')
         user_clinic = request.POST.get('clinic', None)
         
@@ -469,14 +468,14 @@ def edit_user(request, user_id):
     
     if request.method == "GET":
         groups = Group.objects.exclude(id__in=user.groups.values_list('id', flat=True))
-        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics, 'groups':groups, 'search_bar':"flase"})
+        return render(request, 'edit_user.html', {'user':user, 'clinics':clinics, 'groups':groups, 'search_bar':"false"})
     
     if request.method == 'POST':            
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        first_name = request.POST.get('first_name','')
-        last_name = request.POST.get('last_name','')
-        user_type = request.POST.get('user_type','')
+        username = request.POST.get('username','').strip()
+        email = request.POST.get('email','').strip().lower()
+        first_name = request.POST.get('first_name','').strip()
+        last_name = request.POST.get('last_name','').strip()
+        user_type = request.POST.get('user_type','').strip()
         user_clinic = request.POST.get('clinic', None)
         user_grp = request.POST.getlist('choosen_groups', [])
         user_group = []
@@ -635,7 +634,7 @@ def profile(request):
         messages.success(request, f'{user.username} Profile updated successfully.')
         return redirect('profile')
 
-    return render(request, 'profile.html', {'search_bar':"flase"})
+    return render(request, 'profile.html', {'search_bar':"false"})
 
 
 @require_http_methods(["GET"])
@@ -656,17 +655,17 @@ def clinic_add(request):
         return redirect('clinic')
     
     if request.method == "GET":
-        return render(request, 'clinic_add.html', {'search_bar':"flase"})
+        return render(request, 'clinic_add.html', {'search_bar':"false"})
     
     if request.method == "POST":
-        name = request.POST.get('clinic_name', '').strip()
-        email = request.POST.get('email', '').strip()
-        number = request.POST.get('number', '').strip()
-        address = request.POST.get('address', '').strip()
-        state = request.POST.get('state', '')
-        city = request.POST.get('city', '')
-        pincode = request.POST.get('pincode', '').strip()
-        specializations = request.POST.get('specializations', '').strip()
+        name = request.POST.get('clinic_name','').strip()
+        email = request.POST.get('email','').strip().lower()
+        number = request.POST.get('number','').strip()
+        address = request.POST.get('address','').strip()
+        state = request.POST.get('state','')
+        city = request.POST.get('city','')
+        pincode = request.POST.get('pincode','').strip()
+        specializations = request.POST.get('specializations','').strip()
         try:
             cl = Clinic.objects.create(
                 name=name,
@@ -681,7 +680,7 @@ def clinic_add(request):
                 city = City.objects.get(id=city)
             except (Region.DoesNotExist, City.DoesNotExist):
                 messages.error(request, "State and City id does not exist.")
-                return render(request, 'clinic_add.html', {'search_bar':"flase"})
+                return render(request, 'clinic_add.html', {'search_bar':"false"})
             
             cl.state = state
             cl.city = city
@@ -689,7 +688,7 @@ def clinic_add(request):
             messages.success(request, f"Clinic {cl.name} add successfully.")
         except IntegrityError:
             messages.error(request, "Clinic does not created.")
-            return render(request, 'clinic_add.html', {'search_bar':"flase"})
+            return render(request, 'clinic_add.html', {'search_bar':"false"})
         return redirect("clinic")
 
 
@@ -713,17 +712,17 @@ def clinic_edit(request, clinic_id):
         return redirect("clinic")
     
     if request.method == 'GET':
-        return render(request, "clinic_edit.html", {'clinic':clinic, 'search_bar':"flase"})
+        return render(request, "clinic_edit.html", {'clinic':clinic, 'search_bar':"false"})
         
     if request.method == 'POST':
-        name        = request.POST.get('clinic_name', '').strip()
-        email       = request.POST.get('email', '').strip()
-        number      = request.POST.get('number' '').strip()
-        address     = request.POST.get('address', '').strip()
-        state       = request.POST.get('state', '')
-        city        = request.POST.get('city', '')
-        pincode     = request.POST.get('pincode', '').strip()   
-        specializations = request.POST.get('specializations', '').strip()
+        name        = request.POST.get('clinic_name','').strip()
+        email       = request.POST.get('email','').strip().lower()
+        number      = request.POST.get('number','').strip()
+        address     = request.POST.get('address','').strip()
+        state       = request.POST.get('state','')
+        city        = request.POST.get('city','')
+        pincode     = request.POST.get('pincode','').strip()   
+        specializations = request.POST.get('specializations','').strip()
 
         clinic.name     = name
         clinic.email    = email
@@ -743,10 +742,10 @@ def clinic_edit(request, clinic_id):
             messages.success(request, f"{clinic.name} Clinic updated successfully.")
         except (Region.DoesNotExist, City.DoesNotExist):
             messages.error(request, "State and City id does not exist.")
-            return render(request, 'clinic_edit.html', {'clinic':clinic, 'search_bar':"flase"}) 
+            return render(request, 'clinic_edit.html', {'clinic':clinic, 'search_bar':"false"}) 
         except IntegrityError:
             messages.error(request, "Clinic does not updated.")
-            return render(request, 'clinic_edit.html', {'clinic':clinic, 'search_bar':"flase"})  
+            return render(request, 'clinic_edit.html', {'clinic':clinic, 'search_bar':"false"})  
         return redirect('clinic')
 
 
@@ -856,7 +855,7 @@ def add_new_patient(request):
         else:
             clinics = Clinic.objects.filter(id=request.user.clinic_id)
             doctors = User.objects.filter(clinic__in=clinics).values_list('custom_id','username')
-    return render(request, 'add_patient.html', {'clinics':clinics, 'doctors':doctors, 'search_bar':"flase"})
+    return render(request, 'add_patient.html', {'clinics':clinics, 'doctors':doctors, 'search_bar':"false"})
 
 
 @require_http_methods(['GET', 'POST'])
@@ -879,7 +878,7 @@ def edit_patient(request, patient_id):
             doctors = User.objects.filter(clinic__in=clinics).values_list('custom_id','username','id')
 
     if request.method == 'GET':
-        return render(request, 'edit_patient.html', {'patient':patient, 'clinics':clinics, 'doctors':doctors, 'search_bar':"flase"})
+        return render(request, 'edit_patient.html', {'patient':patient, 'clinics':clinics, 'doctors':doctors, 'search_bar':"false"})
 
     if request.method == 'POST':
         name        = request.POST.get('name').strip()
@@ -931,7 +930,7 @@ def edit_patient(request, patient_id):
             messages.error(request, "There is an error with form data.")
         except Exception as error:
             messages.error(request, "There is an error with form data.")
-        return render(request, 'edit_patient.html', {'patient':patient, 'clinics':clinics, 'doctors':doctors, 'search_bar':"flase"})
+        return render(request, 'edit_patient.html', {'patient':patient, 'clinics':clinics, 'doctors':doctors, 'search_bar':"false"})
         
 
 @require_http_methods(['GET'])
@@ -961,46 +960,51 @@ def delete_patient(request, patient_id):
 
 @require_http_methods(['GET'])
 @login_required(login_url='login')
+@permission_required(['home.view_patient'], raise_exception=True)
 def patient_details(request, patient_id):
-    if request.method == 'GET':
-        patient = Patient.objects.none()
-        prescriptions = Prescription.objects.none()
+    patient = Patient.objects.none()
+    prescriptions = Prescription.objects.none()
 
-        if request.user.is_superuser:
-            patient = Patient.objects.filter(id=patient_id).first()
-        elif request.user.is_admin:
-            patient = Patient.objects.filter(id=patient_id, clinic=request.user.clinic_id).first()
-        elif request.user.is_admin_staff:
-            patient = Patient.objects.filter(id=patient_id, clinic=request.user.clinic_id).first()
+    if request.user.is_superuser:
+        patient = Patient.objects.filter(id=patient_id).first()
+    else:
+        if not request.user.clinic:
+            messages.error(request, "You are not register to any clinic.")
+            return redirect('patients')
         else:
-            return HttpResponseForbidden("You do not have permission to this source.")
-
-        if patient:
-            prescriptions = Prescription.objects.filter(patient=patient).order_by('visit_date')
-        
-        context = {
-            'patient': patient,
-            'prescriptions' : prescriptions,
-        }
-        return render(request, 'patient_details.html', context)
+            patient = Patient.objects.get(id=patient_id, clinic=request.user.clinic_id)
+    
+    if patient:
+        prescriptions = Prescription.objects.filter(patient=patient).order_by('visit_date')
+    return render(request, 'patient_details.html', {'patient': patient, 'prescriptions' : prescriptions,})
 
 
+@require_http_methods(['GET', 'POST'])
 @login_required(login_url='login')
+@permission_required(['home.add_prescription'], raise_exception=True)
 def add_patient_visit(request, patient_id):
-    today = now().date()
-    today = today.strftime("%Y-%m-%d")
-
+    today = now().date().strftime("%Y-%m-%d")
+    
+    try:
+        if request.user.is_superuser:
+            patient = Patient.objects.get(id=patient_id)
+        else:
+            if not request.user.clinic:
+                messages.error(request, "You are not register to any clinic.")
+                return redirect('patients')
+            else:
+                patient = Patient.objects.get(id=patient_id, clinic=request.user.clinic_id)
+    except Patient.DoesNotExist:
+        messages.error(request, f"Patient does not exist with given id.")
+        return redirect('patients')
+    
     if request.method == 'GET':
-        return render(request, 'add_patient_visit.html', {'today': today})
+        return render(request, 'add_patient_visit.html', {'today': today, 'search_bar':"false"})
     
     if request.method == 'POST':
-        if request.user.is_admin:
-            pass
-        patient = get_object_or_404(Patient, id=patient_id)
-
-        symptoms = request.POST.get('symptoms')
-        prescription = request.POST.get('prescription')
-        visit_date = request.POST.get('visit_date',)
+        symptoms = request.POST.get('symptoms').strip()
+        prescription = request.POST.get('prescription').strip()
+        visit_date = request.POST.get('visit_date')
         next_visit = request.POST.get('next_visit') or None
         image = request.FILES.get('image')
         amount = request.POST.get('amount',0)
@@ -1010,9 +1014,9 @@ def add_patient_visit(request, patient_id):
             amount = abs(int(amount))
             paid_amount = abs(int(paid_amount))
             pending_amount = amount - paid_amount
-        except ValueError:
+        except (ValueError, TypeError):
             messages.error(request, "amount value is not an integer")
-            return render(request, 'add_patient_visit.html', {'today': today})
+            return render(request, 'add_patient_visit.html', {'today': today, 'search_bar':"false"})
         
         if amount == paid_amount:
             status = 'Paid'
@@ -1020,7 +1024,6 @@ def add_patient_visit(request, patient_id):
             status = 'Pending'
         else:
             status = 'Partial Paid'
-       
         try:
             with transaction.atomic():
                 prescription = Prescription.objects.create(
@@ -1033,36 +1036,44 @@ def add_patient_visit(request, patient_id):
                     pending_amount= pending_amount,
                     status      = status
                 )
-                if image:    
+                if image:
                     prescription.image = image
                     prescription.save()
+        except IndentationError:
+            messages.error(request, f"Error occured in patient visit creation.")
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
         else:
             messages.success(request, f"{patient.name!r} new visit added successfully.")
-
         return redirect('patient_details', patient_id=patient_id)
 
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
+@permission_required(['home.change_prescription'], raise_exception=True)
 def edit_patient_visit(request, patient_id, visit_id):
-    today = now().date()
-    today = today.strftime("%Y-%m-%d")
+    today = now().date().strftime("%Y-%m-%d")
 
+    try:
+        if request.user.is_superuser:
+            patient = Patient.objects.get(id=patient_id)
+        else:
+            if not request.user.clinic:
+                messages.error(request, "You are not register to any clinic.")
+                return redirect('patients')
+            else:
+                patient = Patient.objects.get(id=patient_id, clinic=request.user.clinic_id)
+        prescription = Prescription.objects.get(id=visit_id, patient=patient.id)
+    except (Patient.DoesNotExist, Prescription.DoesNotExist):
+        messages.error(request, f"Patient or Visit does not exist with given id.")
+        return redirect('patients')
+    
     if request.method == 'GET':
-        prs = Prescription.objects.filter(id=visit_id).first()
-        return render(request, 'edit_patient_visit.html', {'today': today, 'prs':prs, 'patient_id':patient_id, 'visit_id':visit_id})
+        return render(request, 'edit_patient_visit.html', {'today': today, 'prs':prescription, 'patient_id':patient_id, 'visit_id':visit_id, 'search_bar':'flase'})
     
     if request.method == 'POST':        
-        if request.user.is_admin or request.user.is_admin_staff:
-            doctor = request.user
-            clinic = request.user.clinic
-
-        patient     = get_object_or_404(Patient, id=patient_id, doctor=doctor)  #patinet of perticuler doctor
-        prs         = get_object_or_404(Prescription, id=visit_id, patient=patient) #prescription of perticuler 
-        symptoms    = request.POST.get('symptoms')
-        prescription= request.POST.get('prescription')
+        symptoms    = request.POST.get('symptoms').strip()
+        prsc        = request.POST.get('prescription').strip()
         visit_date  = request.POST.get('visit_date')
         next_visit  = request.POST.get('next_visit') or None
         image       = request.FILES.get('image')
@@ -1073,7 +1084,7 @@ def edit_patient_visit(request, patient_id, visit_id):
             amount      = abs(int(amount))
             paid_amount = abs(int(paid_amount))
             pending_amount= amount - paid_amount
-        except ValueError:
+        except (ValueError, TypeError):
             messages.error(request, "amount value is not integer")
             return redirect('patient_details', patient_id=patient_id)
         
@@ -1086,89 +1097,93 @@ def edit_patient_visit(request, patient_id, visit_id):
        
         try:
             with transaction.atomic():
-                prs.symptoms        = symptoms
-                prs.prescription    = prescription
-                prs.visit_date      = visit_date
-                prs.next_visit      = next_visit
-                prs.amount = amount
-                prs.pending_amount = pending_amount
-                prs.status = status
+                prescription.symptoms       = symptoms
+                prescription.prescription   = prsc
+                prescription.visit_date     = visit_date
+                prescription.next_visit     = next_visit
+                prescription.amount         = amount
+                prescription.pending_amount = pending_amount
+                prescription.status         = status
                 if image:
-                    if prs.image:
-                        os.remove(prs.image.path)
-                    prs.image = image
-                prs.save()
+                    if prescription.image:
+                        os.remove(prescription.image.path)
+                    prescription.image = image
+                prescription.save()
+        except IndentationError:
+            messages.error(request, f"Error occured in patient visit updation.")        
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
         else:
             messages.success(request, "Visit updated successfully.")
         return redirect('patient_details', patient_id=patient_id)
-
-
+    
+    
 @require_http_methods(['GET'])
 @login_required(login_url='login')
-def clear_pending_payment(request, patient_id, visit_id):
-    """ Clear Pending payment """
-    clinic = request.user.clinic
-    doctor = request.user
-    if request.user.is_superuser:
-        patient = get_object_or_404(Patient, id=patient_id)
-    elif request.user.is_admin:
-        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)
-    elif request.user.is_admin_staff:
-        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
-    else:
-        return HttpResponseForbidden("You are not allowed to acced this page.")
-    
-    prs = get_object_or_404(Prescription, id=visit_id, patient=patient)
-    prs.pending_amount = 0
-    prs.status = "Paid"
-    prs.save()
-    messages.success(request, f"{patient.name} pending payment clear successfylly.")
+@permission_required(['home.delete_prescription'], raise_exception=True)
+def delete_patient_visit(request, patient_id, visit_id):
+    """ delete perticuler visit of patient """
+    try:
+        if request.user.is_superuser:
+            patient = Patient.objects.get(id=patient_id)
+        else:
+            if not request.user.clinic:
+                messages.error(request, "You are not register to any clinic.")
+                return redirect('patients')
+            else:
+                patient = Patient.objects.get(id=patient_id, clinic=request.user.clinic_id)
+        prescription = Prescription.objects.get(id=visit_id, patient=patient.id)
+        prescription.delete()
+        messages.success(request, f"{patient.name} Visit deleted successfylly.")
+    except (Patient.DoesNotExist, Prescription.DoesNotExist):
+        messages.error(request, f"Patient or Visit does not exist with given id.")
+        return redirect('patients')
+    except IntegrityError:
+        messages.error(request, f"Error occurred in Visit deletion.")
     return redirect ('patient_details', patient_id=patient_id)
 
 
 @require_http_methods(['GET'])
 @login_required(login_url='login')
-def delete_patient_visit(request, patient_id, visit_id):
-    """ delete perticuler visit of patient """
-    clinic = request.user.clinic
-    doctor = request.user
-    
-    if request.user.is_superuser:
-        patient = get_object_or_404(Patient, id=patient_id)
-    elif request.user.is_admin:
-        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic)
-    elif request.user.is_admin_staff:
-        patient = get_object_or_404(Patient, id=patient_id, clinic=clinic, doctor=doctor)
-    else:
-        return HttpResponseForbidden("You are not allowed to acced this page.")
-    
-    prs = get_object_or_404(Prescription, id=visit_id, patient=patient) #perticuler prescription of patient 
-    prs.delete()
-    messages.success(request, "Visit deleted successfully.")
+@permission_required(['home.change_prescription'], raise_exception=True)
+def clear_pending_payment(request, patient_id, visit_id):
+    """ Clear Pending payment """
+    try:
+        if request.user.is_superuser:
+            patient = Patient.objects.get(id=patient_id)
+        else:
+            if not request.user.clinic:
+                messages.error(request, "You are not register to any clinic.")
+                return redirect('patients')
+            else:
+                patient = Patient.objects.get(id=patient_id, clinic=request.user.clinic_id)
+        prescription = Prescription.objects.get(id=visit_id, patient=patient.id)
+        prescription.pending_amount = 0
+        prescription.status = "Paid"
+        prescription.save()
+        messages.success(request, f"{patient.name} pending payment clear successfylly.")
+    except (Patient.DoesNotExist, Prescription.DoesNotExist):
+        messages.error(request, f"Patient or Visit does not exist with given id.")
+        return redirect('patients')
+    except IntegrityError:
+        messages.error(request, f"Error occurred in payment clearence.")
     return redirect ('patient_details', patient_id=patient_id)
 
 
 @require_http_methods(["GET", "POST"])
 @login_required(login_url='login')
+@permission_required(['home.view_notification'], raise_exception=True)
 def notes(request, note_id=None):
     """ send notification to users and view all notes """
-
     u_emails = []
-    if request.user.is_superuser:
-        u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
-    elif request.user.is_admin or request.user.is_admin_staff:
-        u_emails = User.objects.filter(Q(is_superuser=True) | Q(clinic=request.user.clinic_id), is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
 
     if request.method == 'POST':
-        subject = request.POST.get('subject','')
-        recipients = request.POST.getlist('recipients', [])
+        subject = request.POST.get('subject','').strip()
+        receivers = request.POST.getlist('recipients', [])
         # message = request.POST.get('message','')
 
-        if subject and recipients:
-            recipients = [ r.strip().lower() for r in recipients ]
-            
+        if subject and receivers:
+            recipients = [ r.strip().lower() for r in receivers ]
             if request.user.email in recipients:
                 recipients.remove(request.user.email)
 
@@ -1176,8 +1191,12 @@ def notes(request, note_id=None):
                 receiver = User.objects.filter(email__in=recipients, is_active=True)
             elif request.user.is_admin or request.user.is_admin_staff:
                 receiver = User.objects.filter(Q(is_superuser=True) | Q(clinic=request.user.clinic_id), email__in=recipients, is_active=True)
-            
-            if not receiver.count() == 0:
+            else:
+                receiver = User.objects.filter(is_superuser=True, email__in=recipients, is_active=True)
+
+            if receiver.count() == 0:
+                messages.error(request, "No valid recipients found.")
+            else:
                 note = Notification.objects.create(
                     sender = request.user,
                     subject = subject,
@@ -1186,15 +1205,18 @@ def notes(request, note_id=None):
                 note.receiver.set(receiver)
                 note.save()
                 messages.success(request, "Notification sent successfully.")
-            else:
-                messages.error(request, "No valid recipient found.")
         else:
             messages.error(request, "All fields are required.")
-
+            
     # common for get and post method
     if request.user.is_superuser:
+        u_emails = User.objects.filter(is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
         note_obj = Notification.objects.all().prefetch_related("sender", "receiver").order_by('-created_at')
+    elif request.user.is_admin or request.user.is_admin_staff:
+        u_emails = User.objects.filter(Q(is_superuser=True) | Q(clinic=request.user.clinic_id), is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
+        note_obj = Notification.objects.filter(sender=request.user).prefetch_related("sender", "receiver").order_by('-created_at')
     else:
+        u_emails = User.objects.filter(is_superuser=True, is_active=True).exclude(id=request.user.id).values_list('email', flat=True)
         note_obj = Notification.objects.filter(sender=request.user).prefetch_related("sender", "receiver").order_by('-created_at')
     
     notes = [{
@@ -1210,31 +1232,28 @@ def notes(request, note_id=None):
 
 @require_http_methods(['GET'])
 @login_required(login_url='login')
+@permission_required(['home.delete_notification'], raise_exception=True)
 def delete_note(request, note_id):
     """ delete perticuler notification """
-
-    if not note_id:
-        messages.error(request, "Notification id is required.")
+    if request.user.is_superuser:
+        note = Notification.objects.filter(id=note_id).first()
     else:
-        if request.user.is_superuser:
-            note = Notification.objects.filter(id=note_id).first()
-        else:
-            note = Notification.objects.filter(id=note_id, sender=request.user).first()
-        
-        if note:
-            note.delete()
-            messages.success(request, "Notification deleted successfully.")
-        else:
-            messages.error(request, "Notification not found.")
-        return redirect('notifications')
+        note = Notification.objects.filter(id=note_id, sender=request.user).first()
+    
+    if note:
+        note.delete()
+        messages.success(request, "Notification deleted successfully.")
+    else:
+        messages.error(request, "Notification not found.")
+    return redirect('notifications')
 
 
 @require_http_methods(['GET'])
 @login_required(login_url='login')
+@permission_required(['home.view_notification'], raise_exception=True)
 def getReceiveNotifications(request):
     """ fetch all notifications of logged in user """
-    seen_count = 0
-    unseen_count = 0
+    nts = []
     notes = (
         Notification.objects.filter(receiver=request.user)
         .annotate(is_seen=Exists(
@@ -1246,38 +1265,139 @@ def getReceiveNotifications(request):
         .values('id', 'subject', 'sender__email', 'sender__username', 'sender__profile_img', 'is_seen', 'created_at')
     )
     if notes.exists():
-        n = [{
-            "id": note['id'],
-            "subject": note['subject'],
-            # "message": note['message'],
-            "sender_email": note['sender__email'],
-            "sender_username": note['sender__username'],
-            'sender_profile_img': note['sender__profile_img'] if note['sender__profile_img'] else None,
-            "is_seen": note['is_seen'],
-            "created_at": note['created_at'].strftime("%d-%b-%Y")
-
-        } for note in notes ]
-    return JsonResponse({'notes':n}, status=200)
+        nts = [{
+                "id": note['id'],
+                "subject": note['subject'],
+                # "message": note['message'],
+                "sender_email": note['sender__email'],
+                "sender_username": note['sender__username'],
+                'sender_profile_img': note['sender__profile_img'] if note['sender__profile_img'] else None,
+                "is_seen": note['is_seen'],
+                "created_at": note['created_at'].strftime("%d-%b-%Y")
+            } for note in notes ]
+    return JsonResponse({'notes':nts}, status=200)
         
 
 @require_http_methods(['GET'])
 @login_required(login_url='login')
+@permission_required(['home.view_notification'], raise_exception=True)
 def markSeenNotification(request, note_id):
-    if note_id:
-        notification = Notification.objects.filter(id=note_id, receiver=request.user).first()
-        if notification:
-            seen_note, created = SeenNotification.objects.get_or_create(
-                note=notification,
-                seen_by=request.user,
-            )
-            if created:
-                return JsonResponse({'marked': True, 'message': "success"}, status=200)
-            else:
-                return JsonResponse({'marked': False, 'message': "allredy marked"}, status=200)
+    """ mark notification as seen """
+    context = {
+        'marked':False,
+        'message':'',
+        }
+    notification = Notification.objects.filter(id=note_id, receiver=request.user).first()
+    if notification:
+        seen_note, created = SeenNotification.objects.get_or_create(
+            note=notification,
+            seen_by=request.user,
+        )
+        if created:
+            context['marked'] = True
+            context['message'] = "success"
+            context['status'] = 200
         else:
-            return JsonResponse({'message': 'Notification not found.'}, status=404)
+            context['message'] = "allredy marked"
+            context['status'] = 200
     else:
-        return JsonResponse({'message': 'Bad request.'}, status=400)
+        context['message'] = "Notification not found."
+        context['status'] = 400
+    return JsonResponse(context, status=404)
+
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+@permission_required(['auth.view_group'], raise_exception=True)
+def groups(request):
+    groups = Group.objects.all()
+    return render(request, 'groups.html', {'groups':groups})
+
+
+@require_http_methods(['GET','POST'])
+@login_required(login_url='login')
+@permission_required(['auth.add_group'], raise_exception=True)
+def groups_add(request):
+    permissions = Permission.objects.all()
+    if request.method == "GET":
+        return render(request, 'groups_add.html', {'permissions':permissions})
+        
+    if request.method == "POST":
+        group_name = request.POST.get('name','').strip().lower().replace(" ", "_")
+        choosen_p = request.POST.getlist('permissions', [])
+        choosen_permission = []
+        for cp in choosen_p:
+            try:
+                cp =int(cp)
+                choosen_permission.append(cp)
+            except (TypeError, ValueError):
+                pass
+
+        per_objs = Permission.objects.filter(id__in=choosen_permission) if choosen_permission else []
+        try:
+            group = Group.objects.create(name=group_name)
+            if per_objs:
+                group.permissions.set(per_objs)    # group.permissions.add(*per_objs)
+                group.save()
+            messages.success(request, f"Group {group.name} created successfully.")
+        except IntegrityError:
+            messages.error(request, f"Error occured in Group creation.")
+        return redirect('groups')
+
+
+@require_http_methods(['GET','POST'])
+@login_required(login_url='login')
+@permission_required(['auth.change_group'], raise_exception=True)
+def groups_edit(request, id):
+    try:
+        group           = Group.objects.get(id=id)
+        permissions     = Permission.objects.all()
+        group_permissions= Permission.objects.filter(group=group.id)
+    except (Group.DoesNotExist, Group.MultipleObjectsReturned):
+        messages.error(request, f"Group does not exist with given.")
+        return redirect('groups')
+    
+    if request.method == "GET":
+        permissions = permissions.exclude(id__in=group_permissions)
+        return render(request, 'groups_edit.html', {'group':group, 'permissions':permissions, 'group_permissions':group_permissions})
+    
+    if request.method == "POST":
+        group_name = request.POST.get('name','').strip().lower().replace(" ", "_")
+        choosen_p = request.POST.getlist('permissions', [])
+        choosen_permission = []
+        
+        for cp in choosen_p:
+            try:
+                cp =int(cp)
+                choosen_permission.append(cp)
+            except (TypeError, ValueError):
+                pass
+        
+        per_objs = Permission.objects.filter(id__in=choosen_permission) if choosen_permission else []
+        try:
+            if per_objs:
+                group.permissions.set(per_objs)
+            else:
+                group.permissions.clear()
+            group.name = group_name
+            group.save()
+            messages.success(request, f"Group {group.name!r} Updated successfully.")
+        except IntegrityError:
+            messages.error(request, f"Error occured in Group updation.")
+        return redirect('groups')
+
+
+@require_http_methods(['GET'])
+@login_required(login_url='login')
+@permission_required(['auth.delete_group'], raise_exception=True)
+def groups_delete(request, id):
+    try:
+        group = Group.objects.get(id=id)
+    except (Group.DoesNotExist):
+        messages.error(request, f"Group does not exist with given.")
+    group.delete()
+    messages.success(request, f"Group deleted successfully.")
+    return redirect('groups')
 
 
 @require_http_methods(['GET'])
@@ -1334,101 +1454,6 @@ def get_users(request):
 # app_label = Group._meta.app_label
 # model_name = Group._meta.model_name
 # print(f"{app_label}.view_{model_name}")
-
-@require_http_methods(['GET'])
-@login_required(login_url='login')
-@permission_required(['auth.view_group'], raise_exception=True)
-def groups(request):
-    groups = Group.objects.all()
-    return render(request, 'groups.html', {'groups':groups})
-
-
-@require_http_methods(['GET','POST'])
-@login_required(login_url='login')
-@permission_required(['auth.add_group'], raise_exception=True)
-def groups_add(request):
-    permissions = Permission.objects.all()
-    if request.method == "GET":
-        return render(request, 'groups_add.html', {'permissions':permissions})
-        
-    if request.method == "POST":
-        group_name = request.POST.get('name','').strip().lower().replace(" ", "_")
-        choosen_p = request.POST.getlist('permissions', [])
-        choosen_permission = []
-        for cp in choosen_p:
-            try:
-                cp =int(cp)
-                choosen_permission.append(cp)
-            except (TypeError, ValueError):
-                pass
-
-        per_objs = Permission.objects.filter(id__in=choosen_permission) if choosen_permission else []
-        try:
-            group = Group.objects.create(name=group_name)
-            if per_objs:
-                group.permissions.set(per_objs)    # group.permissions.add(*per_objs)
-                group.save()
-            messages.success(request, f"Group {group.name} created successfully.")
-        except IntegrityError:
-                messages.error(request, f"Error occured in Group creation.")
-        return redirect('groups')
-        
-
-
-@require_http_methods(['GET','POST'])
-@login_required(login_url='login')
-@permission_required(['auth.change_group'], raise_exception=True)
-def groups_edit(request, id):
-    try:
-        group           = Group.objects.get(id=id)
-        permissions     = Permission.objects.all()
-        group_permissions= Permission.objects.filter(group=group.id)
-    except (Group.DoesNotExist, Group.MultipleObjectsReturned):
-        messages.error(request, f"Group does not exist with given {id=}.")
-        return redirect('groups')
-    
-    if request.method == "GET":
-        permissions = permissions.exclude(id__in=group_permissions)
-        return render(request, 'groups_edit.html', {'group':group, 'permissions':permissions, 'group_permissions':group_permissions})
-    
-    if request.method == "POST":
-        group_name = request.POST.get('name', '').strip().lower().replace(" ", "_")
-        choosen_p = request.POST.getlist('permissions', [])
-        choosen_permission = []
-        
-        for cp in choosen_p:
-            try:
-                cp =int(cp)
-                choosen_permission.append(cp)
-            except (TypeError, ValueError):
-                pass
-        
-        per_objs = Permission.objects.filter(id__in=choosen_permission) if choosen_permission else []
-        try:
-            if per_objs:
-                group.permissions.set(per_objs)
-            else:
-                group.permissions.clear()
-            group.name = group_name
-            group.save()
-            messages.success(request, f"Group {group.id} Updated successfully.")
-        except IntegrityError:
-            messages.error(request, f"Error occured in Group {group.id} updation.")
-        return redirect('groups')
-
-
-@require_http_methods(['GET'])
-@login_required(login_url='login')
-@permission_required(['auth.delete_group'], raise_exception=True)
-def groups_delete(request, id):
-    try:
-        group = Group.objects.get(id=id)
-    except (Group.DoesNotExist, Group.MultipleObjectsReturned):
-        messages.error(request, f"Group does not exist with given {id=}.")
-    group_id = group.id
-    group.delete()
-    messages.success(request, f"Group id={group_id} deleted successfully.")
-    return redirect('groups')
 
 
 # fetch("/staffs/")

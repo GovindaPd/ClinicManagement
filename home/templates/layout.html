@@ -186,6 +186,50 @@
             color: #007bff;
         } */
 
+        .custom-tooltip {
+            position: relative;
+            cursor: pointer;
+            /* color: #007bff;
+            text-decoration: underline; */
+        }
+        .custom-tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 5px;
+            white-space: normal;
+            width: 200px;
+            overflow-wrap: break-word;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            z-index: 700;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        .custom-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 75%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: #333;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 700;
+        }
+        .custom-tooltip:hover::after,
+        .custom-tooltip:hover::before {
+            opacity: 1;
+        }
+
         /* On larger screens, make it 50% 
         @media (min-width: 768px) {
         }
@@ -196,10 +240,8 @@
 </head>
 
 <body id="page-top">
-
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <ul class="navbar-nav sidebar sidebar-dark box-background-dark" id="accordionSidebar">
 
@@ -216,12 +258,18 @@
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active mt-2" >
-                <a class="nav-link" href="{% url 'home' %}">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <!-- <i class="fas fa-fw fa-tachometer-alt"></i> -->
+              {% if request.user.is_superuser or request.user.is_admin %}
+                <a class="nav-link" href="{% url 'index' %}">
+                    <i class="fas fa-fw fa-chart-area"></i> <!-- <i class="fas fa-fw fa-tachometer-alt"></i> -->
                     <span>Dashboard</span>
                 </a>
+              {% else %}
+                <a class="nav-link" href="#">
+                    <span>Dashboard</span>
+                </a>
+              {% endif %}
             </li>
+        
 
             <!-- Divider -->
             <hr class="sidebar-divider">
@@ -512,12 +560,12 @@
                         {% if message.tags == 'error' %}
                         <div class="alert alert-danger alert-dismissible fade show pr-3" role="alert">
                             <strong>{{ message }}</strong>
-                            <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button>
+                            <button type="button" class="btn-danger btn-close" data-dismiss="alert" aria-label="Close" style="border-radius:5px; float:right; margin-top:-3px;"><i class="fa fa-window-close"></i></button>
                         </div>
                         {% else %}
                         <div class="alert alert-{{message.tags}} alert-dismissible fade show pr-3 custom-alert" role="alert">
                             <strong>{{ message }}</strong>
-                            <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="float:right; margin-top:-3px;">X</button>
+                            <button type="button" class="btn-{{message.tags}} btn-close" data-dismiss="alert" aria-label="Close" style="border-radius:5px; float:right; margin-top:-3px;"><i class="fa fa-window-close"></i></button>
                         </div>
                         {% endif %}
                       {% endfor %}

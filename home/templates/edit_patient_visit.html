@@ -42,8 +42,6 @@
                 </div>
                 {% endif %}
             </div>
-
-            {% comment %} <hr> {% endcomment %}
             <div class="row" style="margin-top: 10px;">
                 <div class="col-sm-6"><label class="form-label">Total Amount</label>
                     <input type="number" class="form-control" name="amount" placeholder="Total Amount" style="width: 100%;"
@@ -54,18 +52,42 @@
                         min="0" step="1" value="{{prs.amount}}">
                 </div>
             </div>
-
-            <button class="btn cb" id="add_visit" name="submit" type="submit" style="margin-top: 20px;">Edit record</button>
+            <div style="padding:20px 20px 20px 0px;">
+                <button class="btn cb" type="submit">Save</button>
+                <a data-url="{% url 'delete_patient_visit' patient_id visit_id %}" class="btn cb" title="Delete Record"  data-toggle="modal" data-target="#deleteConfirmModal"  onclick="showDeleteModal(this)">
+                    Delete
+                </a>
+            </div>
         </form>
     </div>
     
-    {% comment %} image modal {% endcomment %}
+    <!-- visit delete confirmation modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header custome-m-dark">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="cnav-btn" data-dismiss="modal" aria-label="Close" title="Close"><i class="fa fa-window-close"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this Visit? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <a id="confirmDeleteBtn" class="btn btn-danger" href="#">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end visit delete confirmation modal -->
+    
+    <!-- Display Image modal -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header custome-m-dark">
                     <h5 class="modal-title" id="reportModalLabel">Patient Report</h5>
-                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">X</button>
+                    <button type="button" class="cnav-btn" data-dismiss="modal" aria-label="Close" title="Close"><i class="fa fa-window-close"></i></button>
                 </div>
                 <div class="modal-body">
                     <img src="" id="report_image_modal" alt="Patient Report" style="width: 100%; height: auto;">
@@ -78,8 +100,15 @@
             </div>
         </div>
     </div>
+    <!-- End Display Image modal -->
 
     <script>
+        function showDeleteModal(element) {
+            let deleteUrl = element.getAttribute("data-url");
+            console.log(deleteUrl)
+            document.getElementById("confirmDeleteBtn").href = deleteUrl;
+        }
+
         /* change image scr dynamically*/
         function showImageModal(imgElement) {
             var imageUrl = imgElement.getAttribute("data-src");
