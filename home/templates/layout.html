@@ -50,30 +50,66 @@
             cursor: grabbing;
             transform: scale(1.1);
         }
-
+        
+        /* custom navigation button */
         .cnav-btn {
             color: white;
             font-weight:bold;
-            border-radius: 8px;
+            border-radius: 5px;
             cursor: pointer;
             background-color: rgba(33, 92, 120, 1)!important;
             border: 2px solid rgba(33, 92, 120, 1)!important;
+            transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
         }
-
-        /* Keyboard focus */
         .cnav-btn:focus, .cnav-btn:hover{
             border: 2px solid white!important;
+            box-shadow: none !important;
+            outline: none !important;
         }
-        /* Click (active) effect */
         .cnav-btn:active {
             color: rgba(33, 92, 120, 1)!important;;
             background-color: white!important;
             border: 2x solid white!important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        /* end custom navigation button */
+
+        /* costome btn*/
+        .cb {
+            color: white;
+            font-weight:bold;
+            border-radius: 5px;
+            background-color: rgba(33, 92, 120, 1)!important;
+            border: 2px solid rgba(33, 92, 120, 1)!important;
+        }
+        .cb:focus, .cb:hover{
+            color: white;
+            border: 2px solid white !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        .cb:active{
+            color: rgba(33, 92, 120, 1)!important;
+            background-color: white!important;
+            border: 2x solid white!important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        .btn:focus-visible {
+            outline: none !important;
+        }
+        /* end costome btn*/
+
+        .cnav-icon:focus, .cnav-icon:hover{
+            color: rgba(33, 92, 120, 1)!important;
+            background-color: white!important;
+            border: 2px solid white !important;
+        }
+        cnav-icon2:focus, .cnav-icon2:hover{
+            color: white!important;
         }
 
-        .cb :hover{
-            background-color: rgba(33, 92, 120, 1)!important;
-        }
         .custome-m-dark{
             font-weight:bold;
             color: white;
@@ -125,14 +161,6 @@
             color: white;
         }
 
-        /* costome btn*/
-        .cb{
-            background-color: rgba(33, 92, 120, 1)!important;
-            border: 1px solid rgba(33, 92, 120, 1)!important;
-            color: white;
-            font-weight: bold; 
-        }
-
         /* Hover effect */
         .btn-close:hover {
         color: red;
@@ -151,11 +179,6 @@
             color: white;
             background: red;
         }
-
-        .cb :hover{
-            background-color: rgba(33, 92, 120, 1)!important;
-        }
-        /* end costome btn*/
 
         /* costome table */
         .ctb{
@@ -189,46 +212,44 @@
         .custom-tooltip {
             position: relative;
             cursor: pointer;
-            /* color: #007bff;
-            text-decoration: underline; */
+        }
+        .custom-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            opacity: 0;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: #333;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
         }
         .custom-tooltip::after {
             content: attr(data-tooltip);
             position: absolute;
-            top: 130%;
+            width: 300px;
+            top: 100%;
             left: 50%;
+            opacity: 0;
             transform: translateX(-50%);
             background-color: #333;
             color: #fff;
             padding: 6px 10px;
             border-radius: 5px;
             white-space: normal;
-            width: 200px;
             overflow-wrap: break-word;
-            opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
             font-size: 14px;
-            z-index: 700;
+            z-index: 1000;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-        .custom-tooltip::before {
-            content: '';
-            position: absolute;
-            top: 75%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-bottom-color: #333;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            z-index: 700;
         }
         .custom-tooltip:hover::after,
         .custom-tooltip:hover::before {
             opacity: 1;
-        }
+        }*/
 
         /* On larger screens, make it 50% 
         @media (min-width: 768px) {
@@ -269,55 +290,56 @@
                 </a>
               {% endif %}
             </li>
-        
 
             <!-- Divider -->
             <hr class="sidebar-divider">
-
             <!-- Heading -->           
             <div class="sidebar-heading">Interface</div>
 
             <!-- Nav Item - Pages Collapse Menu -->
+          {% if perms.home.view_user %}
             <li class="nav-item">
-                <a class="nav-link " href="{% url 'all_users' %}" aria-expanded="true" >
+                <a class="nav-link " href="{% url 'all_users' %}" aria-expanded="true">
                     <i class="fas fa-fw fa-user"></i>
                     <span>Users</span>
                 </a>
             </li>
-        {% if perms.auth.view_group %}
+          {% endif %}
+          {% if perms.auth.view_group %}
             <li class="nav-item">
                 <a class="nav-link " href="{% url 'groups' %}" aria-expanded="true" >
                     <i class='fas fa-layer-group'></i>
                     <span>Groups</span>
                 </a>
             </li>
-        {% endif %}
-        {% if perms.home.view_clinic %}
+          {% endif %}
+          {% if perms.home.view_clinic %}
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'clinic' %}" aria-expanded="true">
-                    <i class="fas fas fa-fw fa-cog"></i>
+                    <i class="fas fa-clinic-medical"></i>
                     <span>Clinic</span>
                 </a>
             </li>
-        {% endif %}
-        {% if perms.home.view_patient %}
+          {% endif %}
+          {% if perms.home.view_patient %}
             <li class="nav-item">
                 <a class="nav-link " href="{% url 'patients' %}" aria-expanded="true" >
-                    <i class="fas fa-fw fa-user"></i>
+                    <i class="fas fa-diagnoses"></i>
                     <span>Patients</span>
                 </a>
             </li>
-        {% endif %}
-        {% if perms.home.view_notification %}
+          {% endif %}
+          {% if perms.home.view_notification %}
             <li class="nav-item">
                 <a class="nav-link " href="{% url 'notifications' %}" aria-expanded="true" >
                     <i class="fas fa-envelope-open-text"></i>
                     <span>Notification</span>
                 </a>
             </li>
-        {% endif %}
+          {% endif %}
             
             <!-- Nav Item - Utilities Collapse Menu -->
+            <!--
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
@@ -332,7 +354,7 @@
                     </div>
                 </div>
             </li>
-
+            -->
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
@@ -344,7 +366,7 @@
 
             <!-- Sidebar Message -->
             <div class="sidebar-card d-none d-lg-flex">
-                <img class="sidebar-card-illustration mb-2" src="{% static "/img/profile.jfif" %}" alt="developer profile">
+                <img class="sidebar-card-illustration mb-2" src="{% static "/img/undraw_profile.svg" %}" alt="developer profile">
                 <p class="text-center mb-2"><strong>Developed By</strong> Govinda prasad govinda@singhsoft.com</p>
                 <a class="btn btn-success btn-sm" href="mailto:govinda@singhsoft.com">Contact Us</a>
             </div>
@@ -354,13 +376,10 @@
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-
             <!-- Main Content -->
             <div id="content" style="background: #d8e8ec">
-
                 <!-- Topbar -->
                 <nav class="navbar navbar-expand topbar mb-4 static-top shadow">
-
                     <!-- Sidebar Toggle (Topbar) -->
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars custome-color-dark"></i>
@@ -372,16 +391,10 @@
                         <div class="input-group">
                             <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
                                 aria-label="Search" aria-describedby="basic-addon2" id="search-bar">
-                            {% comment %} 
-                            <div class="input-group-append">
-                                <button class="btn box-background-dark" type="button">
-                                    <i class="fas fa-search fa-sm custome-color-white"></i>
-                                </button>
-                            </div> 
-                            {% endcomment %}
                         </div>
                     </form>
                     {% endif %}
+                    <!-- End Topbar Search -->
 
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
@@ -409,52 +422,11 @@
                             </div>
                         </li>
 
-                        {% comment %} <!-- Nav Item - Alerts -->
-                        <li class="nav-item dropdown no-arrow mx-1 ">
-                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-bell fa-fw custome-color-dark"></i>
-                                <!-- Counter - Alerts -->
-                                <span class="badge badge-danger badge-counter">3+</span>
-                            </a>
-
-                            <!-- Dropdown - Alerts -->
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header box-background-border-dark">
-                                    Alerts Center
-                                </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-primary">
-                                            <i class="fas fa-file-alt text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 12, 2019</div>
-                                        <span class="font-weight-bold">A new monthly report is ready to download!</span>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-success">
-                                            <i class="fas fa-donate text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 7, 2019</div>
-                                        $290.29 has been deposited into your account!
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
-                            </div>
-                        </li> {% endcomment %}
-
                         <!-- Nav Item - Messages -->
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="fetchNotifications()">
-                                <i class="fas fa-envelope fa-fw custome-color-dark"></i>
+                                <i class="fas fa-envelope fa-fw custome-color-dark cnav-icon2"></i>
                                 <!-- Counter - Messages -->
                                 {% if unread_notifications > 0 %}
                                 <span class="badge badge-danger badge-counter">{{unread_notifications}}</span>
@@ -465,61 +437,22 @@
                                 aria-labelledby="messagesDropdown" style="max-height: 400px; overflow-y: auto;" data-bs-auto-close="false">
                                 <h6 class="dropdown-header box-background-border-dark" style="position: sticky; top: 0; z-index: 600;">
                                     Message Center
-                                    <button id="minimizeDropdown" class="cnav-btn float-right" title="Minimize"><i class="fa fa-minus"></i></button>
+                                    <button id="minimizeDropdown" class="cnav-btn float-right" title="Close"><i class="fa fa-minus"></i></button>
                                 </h6>
-                                {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                                            problem I've been having.</div>
-                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                                    </div>
-                                </a> {% endcomment %}
-                                {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
-                                            alt="...">
-                                        <div class="status-indicator"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">I have the photos that you ordered last month, how
-                                            would you like them sent to you?</div>
-                                        <div class="small text-gray-500">Jae Chun · 1d</div>
-                                    </div>
-                                </a> {% endcomment %}
-                                {% comment %} <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-warning"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Last month's report looks great, I am very happy with
-                                            the progress so far, keep up the good work!</div>
-                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
-                                {% endcomment %}
                             </div>
                         </li>
 
                         {% comment %} <div class="topbar-divider d-none d-sm-block"></div> {% endcomment %}
-
                         <!-- Nav Item - User Information -->
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 {% comment %} <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ request.user.username }}</span> {% endcomment %}
                                 {% if request.user.profile_img %}
-                                    <img class="img-profile rounded-circle box-background-border-dark"
+                                    <img class="img-profile rounded-circle box-background-border-dark cnav-icon"
                                         src="{{request.user.profile_img.url}}" alt="profile image" title="{{request.user.username}}">
                                 {% else %}
-                                    <div class="img-profile rounded-circle user-face" title="{{request.user.username}}">
+                                    <div class="img-profile rounded-circle user-face cnav-icon" title="{{request.user.username}}">
                                         {{ request.user.username|get_first_letter|upper }}
                                     </div>
                                 {% endif %}
@@ -535,11 +468,6 @@
                                     <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Change Password
                                 </a>
-                                {% comment %}
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Activity Log
-                                </a> {% endcomment %}
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
@@ -547,9 +475,7 @@
                                 </a>
                             </div>
                         </li>
-
                     </ul>
-
                 </nav>
                 <!-- End of Topbar -->
 
@@ -571,7 +497,9 @@
                       {% endfor %}
                     {% endif %}
 
-                    {% block content %}<!-- your content here-->{% endblock %}
+                    {% block content %}
+                    <!-- your content here-->
+                    {% endblock %}
                 </div>
                 <!-- /.container-fluid -->
 
@@ -582,7 +510,7 @@
             <footer class="sticky-footer box-background-light shadow">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto" style="">
-                        <span>Copyright &copy; Your Website 2021</span>
+                        <span>Copyright &copy; Your Website 2023</span>
                     </div>
                 </div>
             </footer>
@@ -786,6 +714,7 @@
                 document.getElementById("messagesDropdown").classList.remove("show");
             });
         });
+
     </script>
 
 </body>

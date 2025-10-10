@@ -160,7 +160,9 @@ def index(request):
                 'total_clinics': total_clinics,
                 'total_staffs' : total_staffs,
                 'total_patients': total_patients,
-                'load_chart_js': True
+                'load_chart_js': True,
+                'filter':'true',
+                'search_bar':'false',
                 # 'total_doctors': total_doctors,
                 # 'recent_patients': recent_patients,
             }
@@ -232,11 +234,15 @@ def index(request):
                 "monthWiselabels": json.dumps(monthWiselabels),
                 "monthWiseIncomes": json.dumps(monthWiseIncomes),
                 "monthWisePatients": json.dumps(monthWisePatients),
-                'load_chart_js': True
+                'load_chart_js': True,
+                'filter':'true',
+                'search_bar':'false',
             }
         else:
             context = {
-                'load_chart_js': True
+                'load_chart_js': True,
+                'filter':'true',
+                'search_bar':'false',
             }
         return render(request, 'index.html', context)
     
@@ -525,7 +531,7 @@ def edit_user(request, user_id):
                 messages.error(request, "You do not have selected any clinic.") 
                 return redirect('all_users')
         else:
-            messages.error(request, "You do not have permission to add staff.")
+            messages.error(request, "You do not have permission to edit staff.")
             return redirect('all_users')
         
         user.username = username if username else user.username

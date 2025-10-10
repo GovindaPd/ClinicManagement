@@ -11,6 +11,12 @@
         {% elif request.user.is_admin and not request.user.clinic|default:None %}
             <a href="{% url 'add_clinic' %}" class="btn cb" style="font-weight:bold;"><i class="fas fa-plus"></i> Clinic</a>
         {% endif %}
+        
+        {% if request.user.is_admin and request.user.clinic %}
+            <a href="{% url "edit_clinic" request.user.clinic_id %}" class="btn cb" title="Edit Clinic" style="font-weight:bold;">
+                <i class="fas fa-pen"></i> Clinic
+            </a>
+        {% endif %}
     </div>
     <hr>
 
@@ -52,9 +58,6 @@
             </div>
         </div>
     </div>
-    {% if request.user.is_admin and request.user.clinic %}
-    <a href="{% url "edit_clinic" request.user.clinic_id %}" class="btn cb" style="margin-top:20px; font-weight:bold;">Edit Clinic Details</a>
-    {% endif %}
   {% endif %}
 
 

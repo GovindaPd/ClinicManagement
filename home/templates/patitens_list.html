@@ -44,8 +44,8 @@
                         <td>{% if patient.blood_group %}{{patient.blood_group}}{% endif %}</td>
                         <td>{% if patient.age %}{{patient.age}}{% endif %}</td>
                         <td>{{patient.gender}}</td>
-                        <td>{{patient.number}}</td>
-                        <td>{{patient.address}}</td>
+                        <td>{% if patient.number %}{{patient.number}}{% endif %}</td>
+                        <td>{% if patient.address %}{{patient.address}}{% endif %}</td>
                         {% if request.user.is_superuser %}
                         <td>{{patient.doctor}}</td>
                         <td>{{patient.clinic}}</td>

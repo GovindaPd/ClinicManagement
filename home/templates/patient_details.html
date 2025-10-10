@@ -36,10 +36,10 @@
                                 <p class="card-text"><strong>Gender:</strong> {{ patient.gender }}</p>
                             </div>
                             <div class="col-md-4">
-                                <p class="card-text"><strong>Contact Number:</strong> {{ patient.number }}</p>
+                                <p class="card-text"><strong>Contact Number:</strong> {% if patient.number %}{{patient.number}}{% endif %}</p>
                             </div>
                             <div class="col-md-4">
-                                <p class="card-text"><strong>Address:</strong> {{ patient.address }}</p>
+                                <p class="card-text"><strong>Address:</strong> {% if patient.address %}{{patient.address}}{% endif %}</p>
                             </div>
                         </div>
                         <div class="row mb-2">
