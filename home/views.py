@@ -150,102 +150,113 @@ def login_in(request):
 @login_required(login_url='login')
 def index(request):
     """dashboard view """
-    if request.method == 'GET':
-        if request.user.is_superuser:
-            total_clinics = Clinic.objects.count()
-            total_staffs  = User.objects.count()
-            total_patients= Patient.objects.count()
-            # recent_patients = Patient.objects.all().order_by('-created_at')[:5]
-            context = {
-                'total_clinics': total_clinics,
-                'total_staffs' : total_staffs,
-                'total_patients': total_patients,
-                'load_chart_js': True,
-                'filter':'true',
-                'search_bar':'false',
-                # 'total_doctors': total_doctors,
-                # 'recent_patients': recent_patients,
-            }
-        elif request.user.is_admin:
-            total_staffs= User.objects.filter(clinic=request.user.clinic_id).count()
-            patients = Patient.objects.filter(clinic=request.user.clinic_id).prefetch_related('records')
-            total_patients = patients.count()
-            total_pending_payments = 0
-            patient_data = []
-            
-            age_wise_patients = {"Child":0, "Teen":0, "Adult":0, "Senior":0, "Unknown":0, }
-            gender_wise_patients = {"Male":0, "Female":0, "Other":0, "Unknown":0}
-            monthlyIncomeGrouped = defaultdict(lambda: defaultdict(int))
-            monthlyPatientGrouped = defaultdict(lambda: defaultdict(int))
+    context = {}
+    context['filters'] = [
+        ('all_yearly', 'All Yearly'), #Year wise
+        ('all_monthly', 'All Monthly'), #Month wise
+        ('current_year_monthly', 'Current Year Monthly'),
+        ('current_month_daily', 'Current Month Daily'),
+    ]
+    patients = Patient.objects.none()
+    context['patients'] = patients
+    context['clinics']  = Clinic.objects.none()
+    context['staffs']   = User.objects.none()
+    context['load_chart_js'] = True
+    context['filter'] = 'true'
+    context['search_bar'] = 'false'
 
-            for patient in patients:
-                if patient.gender:
-                    gender_wise_patients[patient.gender.capitalize()] += 1
-                else:
-                    gender_wise_patients["Unknown"] += 1
-                
-                if patient.age:
-                    age_type = "Child" if patient.age<13 else "Teen" if patient.age<18 else "Adult" if patient.age<60 else "Senior"
-                    age_wise_patients[age_type] += 1
-                else:
-                    age_wise_patients['Unknown'] += 1
+    age_dict = {"Child":0, "Teen":0, "Adult":0, "Senior":0, "Unknown":0}
+    gender_dict = {"Male":0, "Female":0, "Other":0, "Unknown":0}
+    total_pending_payments = 0
+    patient_data = []
 
-                for prescription in patient.records.all():
-                    if prescription.status in ['Pending', 'Partial Paid']:
-                        total_pending_payments += 1
-                    
-                    if prescription.visit_date:
-                        monthlyIncomeGrouped[prescription.visit_date.year][prescription.visit_date.month] += prescription.amount
-                        monthlyPatientGrouped[prescription.visit_date.year][prescription.visit_date.month] += 1
-
-            monthWiselabels = []
-            monthWiseIncomes = []
-            monthWisePatients = []
-            min_year = min(monthlyIncomeGrouped.keys())
-            max_year = max(monthlyIncomeGrouped.keys())
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(monthlyIncomeGrouped[min_year].keys())
-            monthName = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
-
-
-            for year in range(min_year, max_year + 1):
-                for month in range(1, 13):
-                    if year == min_year and month not in monthlyIncomeGrouped[min_year].keys(): # don't get any date before clinic open
-                        continue
-                    if year > now().year or (year == now().year and month > now().month):   # don't get any future date data
-                        break
-                    monthWiselabels.append(f"{monthName[month]}-{year}")
-                    monthWiseIncomes.append(monthlyIncomeGrouped[year][month])
-                    monthWisePatients.append(monthlyPatientGrouped[year][month])
-                    
-            context = {
-                'total_staffs' : total_staffs,
-                'total_patients': total_patients,
-                'total_pending_payments': total_pending_payments,
-                'age_wise_patients': age_wise_patients,
-                
-                'gender_keys':json.dumps(list(gender_wise_patients.keys())),
-                'gender_values':json.dumps(list(gender_wise_patients.values())),
-                
-                "age_wise_keys": json.dumps(list(age_wise_patients.keys())),
-                "age_wise_values": json.dumps(list(age_wise_patients.values())),
-
-                # year wise earning data
-                "monthWiselabels": json.dumps(monthWiselabels),
-                "monthWiseIncomes": json.dumps(monthWiseIncomes),
-                "monthWisePatients": json.dumps(monthWisePatients),
-                'load_chart_js': True,
-                'filter':'true',
-                'search_bar':'false',
-            }
-        else:
-            context = {
-                'load_chart_js': True,
-                'filter':'true',
-                'search_bar':'false',
-            }
-        return render(request, 'index.html', context)
+    if request.user.is_superuser:
+        clinics = Clinic.objects.all()
+        context['clinics']  = clinics.values_list('id','name')
+        context['t_clinics'] = clinics.count()
+        context['t_staffs']  = User.objects.count()
+        patients = Patient.objects.filter().prefetch_related('records')
+        context['patients'] = patients
+        context['t_patients'] = patients.count()
+        
+    elif request.user.is_admin:
+        context['t_staffs'] = User.objects.filter(clinic=request.user.clinic_id).count()
+        patients = Patient.objects.filter(clinic=request.user.clinic_id).prefetch_related('records')
+        context['patients'] = patients
+        context['t_patients'] = patients.count()
+    else:
+        pass
     
+    amount_records_dict = defaultdict(lambda: defaultdict(int))
+    amount_yearly_dict = defaultdict(lambda: defaultdict(int))
+    patient_records_dict = defaultdict(lambda: defaultdict(int))
+    patient_yearly_dict = defaultdict(lambda: defaultdict(int))
+    # monthlyIncomeGrouped = defaultdict(lambda: defaultdict(int))
+    # monthlyPatientGrouped = defaultdict(lambda: defaultdict(int))
+
+    for patient in patients:
+        for prescription in patient.records.all():
+            if prescription.status in ['Pending', 'Partial Paid']:
+                total_pending_payments += 1
+            
+            if prescription.visit_date:
+                amount_records_dict[patient.clinic_id][prescription.visit_date.strftime("%d-%m-%Y")] += prescription.amount
+                patient_records_dict[patient.clinic_id][prescription.visit_date.strftime("%d-%m-%Y")] += 1
+                amount_yearly_dict[patient.clinic_id][prescription.visit_date.year] += prescription.amount
+                patient_yearly_dict[patient.clinic_id][prescription.visit_date.year] += 1
+                # monthlyIncomeGrouped[prescription.visit_date.year][prescription.visit_date.month] += prescription.amount
+                # monthlyPatientGrouped[prescription.visit_date.year][prescription.visit_date.month] += 1
+
+        if patient.gender:
+            gender_dict[patient.gender.capitalize()] += 1
+        else:
+            gender_dict["Unknown"] += 1
+        
+        if patient.age:
+            age_type = "Child" if patient.age<13 else "Teen" if patient.age<18 else "Adult" if patient.age<60 else "Senior"
+            age_dict[age_type] += 1
+        else:
+            age_dict['Unknown'] += 1
+
+    context['month_name'] = json.dumps({1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'})
+    context['gender_label'] = json.dumps(list(gender_dict.keys()))
+    context['gender_values'] =json.dumps(list(gender_dict.values()))
+    
+    context['age_dict'] = age_dict
+    context['age_label'] = json.dumps(list(age_dict.keys()))
+    context['age_values'] = json.dumps(list(age_dict.values()))
+    context['amount_records_dict'] = json.dumps(amount_records_dict)
+    context['amount_yearly_dict'] = json.dumps(amount_yearly_dict)
+    context['patient_records_dict'] = json.dumps(patient_records_dict)
+    context['patient_yearly_dict'] = json.dumps(patient_yearly_dict)
+    print(context['amount_yearly_dict'])
+    print(context['amount_records_dict'])
+    return render(request, 'index.html', context)
+    
+
+        # monthWiselabels = []
+        # monthWiseIncomes = []
+        # monthWisePatients = []
+        # min_year = min(monthlyIncomeGrouped.keys())
+        # max_year = max(monthlyIncomeGrouped.keys())
+        
+        # for year in range(min_year, max_year + 1):
+        #     for month in range(1, 13):
+        #         if year == min_year and month not in monthlyIncomeGrouped[min_year].keys(): # don't get any date before clinic open
+        #             continue
+        #         if year > now().year or (year == now().year and month > now().month):   # don't get any future date data
+        #             break
+        #         monthWiselabels.append(f"{monthName[month]}-{year}")
+        #         monthWiseIncomes.append(monthlyIncomeGrouped[year][month])
+        #         monthWisePatients.append(monthlyPatientGrouped[year][month])
+                
+        # context = {
+        #     # year wise earning data
+        #     "monthWiselabels": json.dumps(monthWiselabels),
+        #     "monthWiseIncomes": json.dumps(monthWiseIncomes),
+        #     "monthWisePatients": json.dumps(monthWisePatients),
+        # }
+
 
 @require_http_methods(["GET"])
 @login_required(login_url='login')
