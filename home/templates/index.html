@@ -1,6 +1,5 @@
 {% extends 'layout.html' %}
             {% block content %}
-
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
@@ -119,21 +118,21 @@
                       <h1 class="h3 mb-0 text-gray-800">Filter Records: </h1>
                       
                       <form class="form-inline" id="filter_form">
-                        {% if request.user.is_superuser %}
                         <div class="form-group" style="margin-left:20px;">
-                          <select class="form-control" name="clinic">
-                            <option value="all">All</option>
+                          <select class="form-control" name="clinic" id="clinic">
+                            {% if request.user.is_superuser %}
+                              <option value="0">All</option>
+                            {% endif %}
                             {% for cl in clinics %}
-                            <option value="{{cl.0}}">{{cl.1}}</option>
+                              <option value="{{cl.0}}">{{cl.1}}</option>
                             {% endfor %}
                           </select>
                         </div>
-                        {% endif %}
 
                         <div class="form-group" style="margin-left:20px;">
-                          <select class="form-control" name="filter">
+                          <select class="form-control" name="filter" id="filter">
                             {% for filtr in filters %}
-                            <option value="{{filtr.0}}">{{filtr.1}}</option>
+                              <option value="{{filtr.0}}">{{filtr.1}}</option>
                             {% endfor %}
                           </select>
                         </div>
@@ -143,7 +142,6 @@
                             <i class="fas fa-search fa-sm custome-color-white"></i> Filter
                           </button>
                         </div>
-
                       </form>
                     </div>
                     <!-- End Filter -->
@@ -175,7 +173,7 @@
                                 <!-- Card Body -->
                                 <div class="card-body">
                                     <div class="chart-area">
-                                        <canvas id="monthWiseIncomeChart"></canvas>
+                                        <canvas id="incomeLineChart"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -252,7 +250,7 @@
                                 <!-- Card Body -->
                                 <div class="card-body" id="scrollWrapper">
                                     <div class="chart-area" id="canvasContainer">
-                                        <canvas id="monthWisePatientChart" ></canvas>
+                                        <canvas id="patientLineChart" ></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -333,7 +331,7 @@
                                 <!-- Card Body -->
                                 <div class="card-body" id="scrollWrapper">
                                     <div class="chart-area">
-                                        <canvas id="monthWiseIncomeBarChart" ></canvas>
+                                        <canvas id="incomeBarChart" ></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -362,7 +360,7 @@
                                 <!-- Card Body -->
                                 <div class="card-body" id="scrollWrapper">
                                     <div class="chart-area">
-                                        <canvas id="monthWisePatientBarChart" ></canvas>
+                                        <canvas id="patientBarChart" ></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -371,520 +369,330 @@
 
             {% endblock content %}
 
+
 {% block cstm_javascript %}
-<script>
-  // Set new default font family and font color to mimic Bootstrap's default styling
-  Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
-  Chart.defaults.global.defaultFontColor = '#858796';
-  const month_name = "{{ month_name|escapejs }}"
-  console.log(month_name)
+  <script>
+    // Set new default font family and font color to mimic Bootstrap's default styling
+    Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+    Chart.defaults.global.defaultFontColor = '#858796';
+    
+    {% if request.user.is_superuser %}
+    const clinic = "0"
+    {% elif request.user.is_admin %}
+    const clinic = "{{request.user.clinic_id}}"
+    {% endif %}
+    const form = document.getElementById('filter_form');
 
+    const genderPieChart = document.getElementById("GenderWisePieChart");
+    const agePieChart = document.getElementById("AgeWisePieChart");
+    
+    const incomeLineChart = document.getElementById("incomeLineChart");
+    const patientLineChart = document.getElementById("patientLineChart");
 
-function number_format(number, decimals, dec_point, thousands_sep) {
-    // *     example: number_format(1234.56, 2, ',', ' ');
-    // *     return: '1 234,56'
-    number = (number + '').replace(',', '').replace(' ', '');
-    var n = !isFinite(+number) ? 0 : +number,
-      prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
-      sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
-      dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
-      s = '',
-      toFixedFix = function(n, prec) {
-        var k = Math.pow(10, prec);
-        return '' + Math.round(n * k) / k;
-      };
-    // Fix for IE parseFloat(0.55).toFixed(0) = 0;
-    s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
-    if (s[0].length > 3) {
-      s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+    const incomeBarChart = document.getElementById("incomeBarChart");
+    const patientBarChart = document.getElementById("patientBarChart");
+
+    const month_name = {{ month_name|safe }}
+    const gender_label = {{ gender_label|safe }}
+    const gender_values = {{ gender_values|safe }}
+
+    const age_dict = {{ age_dict|safe }}
+    const age_label = {{ age_label|safe }}
+    const age_values = {{ age_values|safe }}
+
+    const amount_records_dict = {{ amount_records_dict|safe }}
+    const amount_yearly_dict = {{ amount_yearly_dict|safe }}
+    const patient_records_dict = {{ patient_records_dict|safe }}
+    const patient_yearly_dict = {{ patient_yearly_dict|safe }}
+    const all_amount_yearly_dict = {{all_amount_yearly_dict|safe}}
+    const all_patient_yearly_dict = {{all_patient_yearly_dict|safe}}
+
+    function number_format(number, decimals, dec_point, thousands_sep){
+      // *     example: number_format(1234.56, 2, ',', ' ');
+      // *     return: '1 234,56'
+      number = (number + '').replace(',', '').replace(' ', '');
+      var n = !isFinite(+number) ? 0 : +number,
+        prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+        sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+        dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+        s = '',
+        toFixedFix = function(n, prec) {
+          var k = Math.pow(10, prec);
+          return '' + Math.round(n * k) / k;
+        };
+        
+      // Fix for IE parseFloat(0.55).toFixed(0) = 0;
+      s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+      if (s[0].length > 3) {
+        s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+      }
+      if ((s[1] || '').length < prec) {
+        s[1] = s[1] || '';
+        s[1] += new Array(prec - s[1].length + 1).join('0');
+      }
+      return s.join(dec);
     }
-    if ((s[1] || '').length < prec) {
-      s[1] = s[1] || '';
-      s[1] += new Array(prec - s[1].length + 1).join('0');
-    }
-    return s.join(dec);
-}
 
-function yearly_chart(){
-  let incomeAreaChart = document.getElementById("monthWiseIncomeChart");
-  let myIncomeLineChart = new Chart(incomeAreaChart, {
-    type: 'line',
-    data: {
-      labels: {{monthWiselabels|safe}},
-      datasets: [{
-        label: "Monthly Earnings",
-        lineTension: 0.3,
-        backgroundColor: "rgba(78, 115, 223, 0.05)",
-        borderColor: "rgba(78, 115, 223, 1)",
-        pointRadius: 3,
-        pointBackgroundColor: "rgba(78, 115, 223, 1)",
-        pointBorderColor: "rgba(78, 115, 223, 1)",
-        pointHoverRadius: 3,
-        pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-        pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-        pointHitRadius: 5,
-        pointBorderWidth: 2,
-        data: {{monthWiseIncomes|safe}},
-      }],
-    },
-    options: {
-      maintainAspectRatio: false,
-      layout: {
-        padding: {
-          left: 10,
-          right: 25,
-          top: 25,
-          bottom: 0
-        }
-      },
-      scales: {
-        xAxes: [{
-          time: {
-            unit: 'date'
+    // Pie Chart Example
+    function circleChart(label, values, element){
+      let pieChart = new Chart(element, {
+        type: 'doughnut',
+        data: {
+          labels: label,
+          datasets: [{
+            data: values,
+            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#e46f78', '#EFCC1A'], //['#4e73df', '#1cc88a', '#36b9cc', '#EFCC1A'],
+            hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#dc3545', '#ffc107'], //['#2e59d9', '#17a673', '#2c9faf', '#ffc107'],
+            hoverBorderColor: "rgba(234, 236, 244, 1)",
+          }],
+        },
+        options: {
+          maintainAspectRatio: false,
+          tooltips: {
+            backgroundColor: "rgb(255,255,255)",
+            bodyFontColor: "#858796",
+            borderColor: '#dddfeb',
+            borderWidth: 1,
+            xPadding: 15,
+            yPadding: 15,
+            displayColors: false,
+            caretPadding: 10,
           },
-          gridLines: {
-            display: false,
-            drawBorder: false
+          legend: {
+            display: false
           },
-          ticks: {
-            maxTicksLimit: 12 
-          }
-        }],
-        yAxes: [{
-          ticks: {
-            maxTicksLimit: 12,
-            padding: 10,
+          cutoutPercentage: 80,
+        },
+      });
+    }
+
+    function drawLineCharts(labels, values, label, element, label_end=''){
+      let lineChart = new Chart(element, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: label,
+            lineTension: 0.3,
+            backgroundColor: "rgba(78, 115, 223, 0.05)",
+            borderColor: "rgba(78, 115, 223, 1)",
+            pointRadius: 3,
+            pointBackgroundColor: "rgba(78, 115, 223, 1)",
+            pointBorderColor: "rgba(78, 115, 223, 1)",
+            pointHoverRadius: 3,
+            pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+            pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+            pointHitRadius: 5,
+            pointBorderWidth: 2,
+            data: values,
+          }],
+        },
+        options: {
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              left: 10,
+              right: 25,
+              top: 25,
+              bottom: 0
+            }
           },
-          gridLines: {
-            color: "rgb(234, 236, 244)",
-            zeroLineColor: "black",
-            drawBorder: true,
-            borderDash: [2],
-            zeroLineBorder: [2]
+          scales: {
+            xAxes: [{
+              time: {
+                unit: 'date'
+              },
+              gridLines: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                maxTicksLimit: 12 
+              }
+            }],
+            yAxes: [{
+              ticks: {
+                maxTicksLimit: 12,
+                padding: 10,
+              },
+              gridLines: {
+                color: "rgb(234, 236, 244)",
+                zeroLineColor: "black",
+                drawBorder: true,
+                borderDash: [2],
+                zeroLineBorder: [2]
+              }
+            }],
+          },
+          legend: {
+            display: false
+          },
+          tooltips: {
+            backgroundColor: "rgb(255,255,255)",
+            bodyFontColor: "#858796",
+            titleMarginBottom: 10,
+            titleFontColor: '#6e707e',
+            titleFontSize: 14,
+            borderColor: '#dddfeb',
+            borderWidth: 1,
+            xPadding: 15,
+            yPadding: 15,
+            displayColors: false,
+            intersect: false,
+            mode: 'index',
+            caretPadding: 10,
+            callbacks: {
+              label: function(tooltipItem, chart) {
+                let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
+                return datasetLabel + ': ' + number_format(tooltipItem.yLabel) + label_end;
+              }
+            }
           }
-        }],
-      },
-      legend: {
-        display: false
-      },
-      tooltips: {
-        backgroundColor: "rgb(255,255,255)",
-        bodyFontColor: "#858796",
-        titleMarginBottom: 10,
-        titleFontColor: '#6e707e',
-        titleFontSize: 14,
-        borderColor: '#dddfeb',
-        borderWidth: 1,
-        xPadding: 15,
-        yPadding: 15,
-        displayColors: false,
-        intersect: false,
-        mode: 'index',
-        caretPadding: 10,
-        callbacks: {
-          label: function(tooltipItem, chart) {
-            let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
-            return datasetLabel + ': ' + number_format(tooltipItem.yLabel) + ' ₹';
+        }
+      });
+    }
+    
+
+    function drawBarCharts(labels, values, label, element, label_end=''){
+      let barChart = new Chart(element, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: label,
+            data: values,
+            backgroundColor: "#4e73df",
+            borderColor: "#4e73df",
+            borderWidth: 1,
+            hoverBackgroundColor: "#2e59d9",
+            hoverBorderColor: "rgba(78, 115, 223, 1)",
+          }],
+        },
+        options: {
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              left: 10,
+              right: 25,
+              top: 25,
+              bottom: 0
+            }
+          },
+          scales: {
+            xAxes: [{
+              gridLines: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                maxTicksLimit: 12
+              },
+              maxBarThickness: 25
+            }],
+            yAxes: [{
+              ticks: {
+                maxTicksLimit: 10,
+                padding: 10,
+              },
+              gridLines: {
+                color: "rgb(234, 236, 244)",
+                zeroLineColor: "black",
+                drawBorder: true,
+                borderDash: [2],
+                zeroLineBorder: [2]
+              }
+            }],
+          },
+          legend: {
+            display: false
+          },
+          tooltips: {
+            backgroundColor: "rgb(255,255,255)",
+            bodyFontColor: "#858796",
+            titleMarginBottom: 10,
+            titleFontColor: '#6e707e',
+            titleFontSize: 14,
+            borderColor: '#dddfeb',
+            borderWidth: 1,
+            xPadding: 15,
+            yPadding: 15,
+            displayColors: false,
+            intersect: false,
+            mode: 'index',
+            caretPadding: 10,
+            callbacks: {
+              label: function(tooltipItem, chart) {
+                let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
+                return datasetLabel + ': ' + number_format(tooltipItem.yLabel) + label_end;
+              }
+            }
           }
         }
-      }
+      });
     }
-  });
-}
-// Area Chart for month wise incomes
-{% comment %} let incomeAreaChart = document.getElementById("monthWiseIncomeChart");
-let myIncomeLineChart = new Chart(incomeAreaChart, {
-  type: 'line',
-  data: {
-    labels: {{monthWiselabels|safe}},
-    datasets: [{
-      label: "Monthly Earnings",
-      lineTension: 0.3,
-      backgroundColor: "rgba(78, 115, 223, 0.05)",
-      borderColor: "rgba(78, 115, 223, 1)",
-      pointRadius: 3,
-      pointBackgroundColor: "rgba(78, 115, 223, 1)",
-      pointBorderColor: "rgba(78, 115, 223, 1)",
-      pointHoverRadius: 3,
-      pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-      pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-      pointHitRadius: 5,
-      pointBorderWidth: 2,
-      data: {{monthWiseIncomes|safe}},
-    }],
-  },
-  options: {
-    maintainAspectRatio: false,
-    layout: {
-      padding: {
-        left: 10,
-        right: 25,
-        top: 25,
-        bottom: 0
+
+
+    document.addEventListener("DOMContentLoaded", function(){
+      if (clinic=="0"){
+        d = all_amount_yearly_dict
+        d2 = all_patient_yearly_dict
       }
-    },
-    scales: {
-      xAxes: [{
-        time: {
-          unit: 'date'
-        },
-        gridLines: {
-          display: false,
-          drawBorder: false
-        },
-        ticks: {
-          maxTicksLimit: 12 
-        }
-      }],
-      yAxes: [{
-        ticks: {
-          maxTicksLimit: 12,
-          padding: 10,
-        },
-        gridLines: {
-          color: "rgb(234, 236, 244)",
-          zeroLineColor: "black",
-          drawBorder: true,
-          borderDash: [2],
-          zeroLineBorder: [2]
-        }
-      }],
-    },
-    legend: {
-      display: false
-    },
-    tooltips: {
-      backgroundColor: "rgb(255,255,255)",
-      bodyFontColor: "#858796",
-      titleMarginBottom: 10,
-      titleFontColor: '#6e707e',
-      titleFontSize: 14,
-      borderColor: '#dddfeb',
-      borderWidth: 1,
-      xPadding: 15,
-      yPadding: 15,
-      displayColors: false,
-      intersect: false,
-      mode: 'index',
-      caretPadding: 10,
-      callbacks: {
-        label: function(tooltipItem, chart) {
-          let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
-          return datasetLabel + ': ' + number_format(tooltipItem.yLabel) + ' ₹';
-        }
+      else{
+        d = amount_yearly_dict[clinic]
+        d2 = patient_yearly_dict[clinic]
       }
-    }
-  }
-});
 
-// Monthly patients area chart
-let PatientAreaChart = document.getElementById("monthWisePatientChart");
-let myPatientLineChart = new Chart(PatientAreaChart, {
-  type: 'line',
-  data: {
-    labels: {{monthWiselabels|safe}},
-    datasets: [{
-      label: "Monthly Patients",
-      lineTension: 0.3,
-      backgroundColor: "rgba(78, 115, 223, 0.05)",
-      borderColor: "rgba(78, 115, 223, 1)",
-      pointRadius: 3,
-      pointBackgroundColor: "rgba(78, 115, 223, 1)",
-      pointBorderColor: "rgba(78, 115, 223, 1)",
-      pointHoverRadius: 3,
-      pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-      pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-      pointHitRadius: 5,
-      pointBorderWidth: 2,
-      data: {{monthWisePatients|safe}},
-    }],
-  },
-  options: {
-    maintainAspectRatio: false,
-    layout: {
-      padding: {
-        left: 10,
-        right: 25,
-        top: 25,
-        bottom: 0
-      }
-    },
-    scales: {
-      xAxes: [{
-        time: {
-          unit: 'date'
-        },
-        gridLines: {
-          display: false,
-          drawBorder: false
-        },
-        ticks: {
-          maxTicksLimit: 12 
+      drawLineCharts(Object.keys(d), Object.values(d), "Yearly Earnings", incomeLineChart, label_end=' ₹')
+      drawLineCharts(Object.keys(d2), Object.values(d2), "Yearly Patients", patientLineChart)
+
+      drawBarCharts(Object.keys(d), Object.values(d), "Yearly Earnings", incomeBarChart, label_end=' ₹')
+      drawBarCharts(Object.keys(d2), Object.values(d2), "Yearly Patients", patientBarChart)
+
+      circleChart(gender_label, gender_values, genderPieChart)
+      circleChart(age_label, age_values, agePieChart)
+
+      
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        let cl = document.getElementById('clinic').value;
+        let fl = document.getElementById('filter').value;
+
+        // for specific clinic
+        if (cl == clinic){
+          if(filter=='all_monthly'){
+            
+          }
+          else if(filter=='current_year_monthly'){
+            
+          }
+          else if(filter=='current_month_daily'){
+            
+          }
+          else{ //all yearly
+            d = amount_yearly_dict[clinic]
+            d2 = patient_yearly_dict[clinic]
+          }
         }
-      }],
-      yAxes: [{
-        ticks: {
-          maxTicksLimit: 12,
-          padding: 10,
-        },
-        gridLines: {
-          color: "rgb(234, 236, 244)",
-          zeroLineColor: "black",
-          drawBorder: true,
-          borderDash: [2],
-          zeroLineBorder: [2]
+        else{ // for all
+          if(filter=='all_monthly'){
+            
+          }
+          else if(filter=='current_year_monthly'){
+            
+          }
+          else if(filter=='current_month_daily'){
+            
+          }
+          else{ //all yearly
+            d = all_amount_yearly_dict
+            d2 = all_patient_yearly_dict
+          }
         }
-      }],
-    },
-    legend: {
-      display: false
-    },
-    tooltips: {
-      backgroundColor: "rgb(255,255,255)",
-      bodyFontColor: "#858796",
-      titleMarginBottom: 10,
-      titleFontColor: '#6e707e',
-      titleFontSize: 14,
-      borderColor: '#dddfeb',
-      borderWidth: 1,
-      xPadding: 15,
-      yPadding: 15,
-      displayColors: false,
-      intersect: false,
-      mode: 'index',
-      caretPadding: 10,
-      callbacks: {
-        label: function(tooltipItem, chart) {
-          let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
-          return datasetLabel + ': ' + number_format(tooltipItem.yLabel);
-        }
-      }
-    }
-  }
-});
+        
+        drawLineCharts(Object.keys(amount_yearly_dict), Object.values(amount_yearly_dict), "Monthly Earnings", incomeLineChart)
+      })
+    });
 
-// BAR chart monthWiseIncomeBarChart
-let incomeBarChart = document.getElementById("monthWiseIncomeBarChart");
-let myIncomeBarChart = new Chart(incomeBarChart, {
-  type: 'bar', // Changed from 'line' to 'bar'
-  data: {
-    labels: {{monthWiselabels|safe}},
-    datasets: [{
-      label: "Monthly Revenue",
-      data: {{monthWiseIncomes|safe}},
-      backgroundColor: "#4e73df",
-      borderColor: "#4e73df",
-      borderWidth: 1,
-      hoverBackgroundColor: "#2e59d9",
-      hoverBorderColor: "rgba(78, 115, 223, 1)",
-    }],
-  },
-  options: {
-    maintainAspectRatio: false,
-    layout: {
-      padding: {
-        left: 10,
-        right: 25,
-        top: 25,
-        bottom: 0
-      }
-    },
-    scales: {
-      xAxes: [{
-        gridLines: {
-          display: false,
-          drawBorder: false
-        },
-        ticks: {
-          maxTicksLimit: 12
-        },
-        maxBarThickness: 25
-      }],
-      yAxes: [{
-        ticks: {
-          maxTicksLimit: 10,
-          padding: 10,
-        },
-        gridLines: {
-          color: "rgb(234, 236, 244)",
-          zeroLineColor: "black",
-          drawBorder: true,
-          borderDash: [2],
-          zeroLineBorder: [2]
-        }
-      }],
-    },
-    legend: {
-      display: false
-    },
-    tooltips: {
-      backgroundColor: "rgb(255,255,255)",
-      bodyFontColor: "#858796",
-      titleMarginBottom: 10,
-      titleFontColor: '#6e707e',
-      titleFontSize: 14,
-      borderColor: '#dddfeb',
-      borderWidth: 1,
-      xPadding: 15,
-      yPadding: 15,
-      displayColors: false,
-      intersect: false,
-      mode: 'index',
-      caretPadding: 10,
-      callbacks: {
-        label: function(tooltipItem, chart) {
-          let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
-          return datasetLabel + ': ' + number_format(tooltipItem.yLabel);
-        }
-      }
-    }
-  }
-});
+  </script>
 
-
-// BAR monthWisePatientBarChart
-let PatientBarChart = document.getElementById("monthWisePatientBarChart");
-let myPatientBarChart = new Chart(PatientBarChart, {
-  type: 'bar', // Changed from 'line' to 'bar'
-  data: {
-    labels: {{monthWiselabels|safe}},
-    datasets: [{
-      label: "Monthly Patients",
-      data: {{monthWisePatients|safe}},
-      backgroundColor: "#4e73df",
-      borderColor: "#4e73df",
-      borderWidth: 1,
-      hoverBackgroundColor: "#2e59d9",
-      hoverBorderColor: "rgba(78, 115, 223, 1)",
-    }],
-  },
-  options: {
-    maintainAspectRatio: false,
-    layout: {
-      padding: {
-        left: 10,
-        right: 25,
-        top: 25,
-        bottom: 0
-      }
-    },
-    scales: {
-      xAxes: [{
-        gridLines: {
-          display: false,
-          drawBorder: false
-        },
-        ticks: {
-          maxTicksLimit: 12
-        },
-        maxBarThickness: 25
-      }],
-      yAxes: [{
-        ticks: {
-          maxTicksLimit: 12,
-          padding: 10,
-        },
-        gridLines: {
-          color: "rgb(234, 236, 244)",
-          zeroLineColor: "black",
-          drawBorder: true,
-          borderDash: [2],
-          zeroLineBorder: [2]
-        }
-      }],
-    },
-    legend: {
-      display: false
-    },
-    tooltips: {
-      backgroundColor: "rgb(255,255,255)",
-      bodyFontColor: "#858796",
-      titleMarginBottom: 10,
-      titleFontColor: '#6e707e',
-      titleFontSize: 14,
-      borderColor: '#dddfeb',
-      borderWidth: 1,
-      xPadding: 15,
-      yPadding: 15,
-      displayColors: false,
-      intersect: false,
-      mode: 'index',
-      caretPadding: 10,
-      callbacks: {
-        label: function(tooltipItem, chart) {
-          let datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
-          return datasetLabel + ': ' + number_format(tooltipItem.yLabel);
-        }
-      }
-    }
-  }
-}); {% endcomment %}
-
-
-
-// Pie Gender Chart Example
-var ctx = document.getElementById("GenderWisePieChart");
-var genderWisePieChart = new Chart(ctx, {
-  type: 'doughnut',
-  data: {
-    labels: {{ gender_label|safe }},
-    datasets: [{
-      data: {{ gender_values|safe }},
-      backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#EFCC1A'],
-      hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#ffc107'],
-      hoverBorderColor: "rgba(234, 236, 244, 1)",
-    }],
-  },
-  options: {
-    maintainAspectRatio: false,
-    tooltips: {
-      backgroundColor: "rgb(255,255,255)",
-      bodyFontColor: "#858796",
-      borderColor: '#dddfeb',
-      borderWidth: 1,
-      xPadding: 15,
-      yPadding: 15,
-      displayColors: false,
-      caretPadding: 10,
-    },
-    legend: {
-      display: false
-    },
-    cutoutPercentage: 80,
-  },
-});
-
-// AgeWisePieChart chart
-var ctx2 = document.getElementById("AgeWisePieChart");
-var ageWisePieChart = new Chart(ctx2, {
-  type: 'doughnut',
-  data: {
-    labels: {{ age_label|safe }},
-    datasets: [{
-      data: {{ age_values|safe }},
-      backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#e46f78', '#EFCC1A'],
-      hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#dc3545', '#ffc107'],
-      hoverBorderColor: "rgba(234, 236, 244, 1)",
-    }],
-  },
-  options: {
-    maintainAspectRatio: false,
-    tooltips: {
-      backgroundColor: "rgb(255,255,255)",
-      bodyFontColor: "#858796",
-      borderColor: '#dddfeb',
-      borderWidth: 1,
-      xPadding: 15,
-      yPadding: 15,
-      displayColors: false,
-      caretPadding: 10,
-    },
-    legend: {
-      display: false
-    },
-    cutoutPercentage: 80,
-  },
-});
-
-</script>
 {% endblock %}

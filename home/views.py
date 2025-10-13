@@ -167,8 +167,16 @@ def index(request):
 
     age_dict = {"Child":0, "Teen":0, "Adult":0, "Senior":0, "Unknown":0}
     gender_dict = {"Male":0, "Female":0, "Other":0, "Unknown":0}
+    month_name = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
     total_pending_payments = 0
     patient_data = []
+    
+    amount_records_dict = defaultdict(lambda: defaultdict(int))
+    amount_yearly_dict = defaultdict(lambda: defaultdict(int))
+    patient_records_dict = defaultdict(lambda: defaultdict(int))
+    patient_yearly_dict = defaultdict(lambda: defaultdict(int))
+    all_amount_yearly_dict = defaultdict(int)
+    all_patient_yearly_dict = defaultdict(int)
 
     if request.user.is_superuser:
         clinics = Clinic.objects.all()
@@ -178,21 +186,15 @@ def index(request):
         patients = Patient.objects.filter().prefetch_related('records')
         context['patients'] = patients
         context['t_patients'] = patients.count()
-        
     elif request.user.is_admin:
+        clinics = Clinic.objects.filter(id=request.user.clinic_id)
+        context['clinics']  = clinics.values_list('id','name')
         context['t_staffs'] = User.objects.filter(clinic=request.user.clinic_id).count()
         patients = Patient.objects.filter(clinic=request.user.clinic_id).prefetch_related('records')
         context['patients'] = patients
         context['t_patients'] = patients.count()
     else:
         pass
-    
-    amount_records_dict = defaultdict(lambda: defaultdict(int))
-    amount_yearly_dict = defaultdict(lambda: defaultdict(int))
-    patient_records_dict = defaultdict(lambda: defaultdict(int))
-    patient_yearly_dict = defaultdict(lambda: defaultdict(int))
-    # monthlyIncomeGrouped = defaultdict(lambda: defaultdict(int))
-    # monthlyPatientGrouped = defaultdict(lambda: defaultdict(int))
 
     for patient in patients:
         for prescription in patient.records.all():
@@ -202,11 +204,13 @@ def index(request):
             if prescription.visit_date:
                 amount_records_dict[patient.clinic_id][prescription.visit_date.strftime("%d-%m-%Y")] += prescription.amount
                 patient_records_dict[patient.clinic_id][prescription.visit_date.strftime("%d-%m-%Y")] += 1
+                
                 amount_yearly_dict[patient.clinic_id][prescription.visit_date.year] += prescription.amount
                 patient_yearly_dict[patient.clinic_id][prescription.visit_date.year] += 1
-                # monthlyIncomeGrouped[prescription.visit_date.year][prescription.visit_date.month] += prescription.amount
-                # monthlyPatientGrouped[prescription.visit_date.year][prescription.visit_date.month] += 1
 
+                all_amount_yearly_dict[prescription.visit_date.year] += prescription.amount
+                all_patient_yearly_dict[prescription.visit_date.year] += 1
+                
         if patient.gender:
             gender_dict[patient.gender.capitalize()] += 1
         else:
@@ -218,19 +222,21 @@ def index(request):
         else:
             age_dict['Unknown'] += 1
 
-    context['month_name'] = json.dumps({1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'})
+    context['month_name'] = json.dumps(month_name)
     context['gender_label'] = json.dumps(list(gender_dict.keys()))
     context['gender_values'] =json.dumps(list(gender_dict.values()))
     
     context['age_dict'] = age_dict
     context['age_label'] = json.dumps(list(age_dict.keys()))
     context['age_values'] = json.dumps(list(age_dict.values()))
+    
     context['amount_records_dict'] = json.dumps(amount_records_dict)
     context['amount_yearly_dict'] = json.dumps(amount_yearly_dict)
     context['patient_records_dict'] = json.dumps(patient_records_dict)
     context['patient_yearly_dict'] = json.dumps(patient_yearly_dict)
-    print(context['amount_yearly_dict'])
-    print(context['amount_records_dict'])
+    context['all_amount_yearly_dict'] = json.dumps(all_amount_yearly_dict)
+    context['all_patient_yearly_dict'] = json.dumps(all_patient_yearly_dict)
+    
     return render(request, 'index.html', context)
     
 
