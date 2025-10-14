@@ -708,14 +708,16 @@
           lbe = "Yearly Earnings"
           lbp = "Yearly Patients"
         }
-        /*lineChart1.destroy()
+        /*
+        lineChart1.destroy()
         lineChart2.destroy()
         barChart1.destroy()
-        barChart2.destroy()*/
-        drawLineCharts(Object.keys(d), Object.values(d), lbe, incomeLineChart, chartVar=lineChart1, label_end=' ₹')
-        drawLineCharts(Object.keys(d2), Object.values(d2), lbp, patientLineChart, chartVar=lineChart2)
-        drawBarCharts(Object.keys(d), Object.values(d), lbe, incomeBarChart, chartVar=barChart1, label_end=' ₹')
-        drawBarCharts(Object.keys(d2), Object.values(d2), lbp, patientBarChart, chartVar=barChart2)
+        barChart2.destroy()
+        */
+        lineChart1 = drawLineCharts(Object.keys(d), Object.values(d), lbe, incomeLineChart, label_end=' ₹')
+        lineChart2 = drawLineCharts(Object.keys(d2), Object.values(d2), lbp, patientLineChart)
+        barChart1 = drawBarCharts(Object.keys(d), Object.values(d), lbe, incomeBarChart, label_end=' ₹')
+        barChart2 = drawBarCharts(Object.keys(d2), Object.values(d2), lbp, patientBarChart)
       })
     });
 
