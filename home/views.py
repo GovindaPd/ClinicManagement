@@ -152,10 +152,9 @@ def index(request):
     """dashboard view """
     context = {}
     context['filters'] = [
-        ('all_yearly', 'All Yearly'), #Year wise
-        ('all_monthly', 'All Monthly'), #Month wise
-        ('current_year_monthly', 'Current Year Monthly'),
         ('current_month_daily', 'Current Month Daily'),
+        ('current_year_monthly', 'Current Year Monthly'),
+        ('yearly', 'Yearly'), #Year wise
     ]
     patients = Patient.objects.none()
     context['patients'] = patients
@@ -175,11 +174,14 @@ def index(request):
     amount_yearly_dict = defaultdict(lambda: defaultdict(int))
     patient_records_dict = defaultdict(lambda: defaultdict(int))
     patient_yearly_dict = defaultdict(lambda: defaultdict(int))
-    all_amount_yearly_dict = defaultdict(int)
-    all_patient_yearly_dict = defaultdict(int)
+    # all_amount_yearly_dict = defaultdict(int)
+    # all_patient_yearly_dict = defaultdict(int)
 
     if request.user.is_superuser:
         clinics = Clinic.objects.all()
+        if not clinics.exists():
+            redirect('all_users')
+
         context['clinics']  = clinics.values_list('id','name')
         context['t_clinics'] = clinics.count()
         context['t_staffs']  = User.objects.count()
@@ -187,6 +189,9 @@ def index(request):
         context['patients'] = patients
         context['t_patients'] = patients.count()
     elif request.user.is_admin:
+        if not request.user.clinic:
+            redirect ('all_users')
+
         clinics = Clinic.objects.filter(id=request.user.clinic_id)
         context['clinics']  = clinics.values_list('id','name')
         context['t_staffs'] = User.objects.filter(clinic=request.user.clinic_id).count()
@@ -194,8 +199,8 @@ def index(request):
         context['patients'] = patients
         context['t_patients'] = patients.count()
     else:
-        pass
-
+        return redirect('patients')
+    
     for patient in patients:
         for prescription in patient.records.all():
             if prescription.status in ['Pending', 'Partial Paid']:
@@ -208,8 +213,8 @@ def index(request):
                 amount_yearly_dict[patient.clinic_id][prescription.visit_date.year] += prescription.amount
                 patient_yearly_dict[patient.clinic_id][prescription.visit_date.year] += 1
 
-                all_amount_yearly_dict[prescription.visit_date.year] += prescription.amount
-                all_patient_yearly_dict[prescription.visit_date.year] += 1
+                # all_amount_yearly_dict[prescription.visit_date.year] += prescription.amount
+                # all_patient_yearly_dict[prescription.visit_date.year] += 1
                 
         if patient.gender:
             gender_dict[patient.gender.capitalize()] += 1
@@ -221,6 +226,9 @@ def index(request):
             age_dict[age_type] += 1
         else:
             age_dict['Unknown'] += 1
+
+    if context['clinics']:
+        context['default_clinic'] =  context['clinics'][0][0]
 
     context['month_name'] = json.dumps(month_name)
     context['gender_label'] = json.dumps(list(gender_dict.keys()))
@@ -234,34 +242,10 @@ def index(request):
     context['amount_yearly_dict'] = json.dumps(amount_yearly_dict)
     context['patient_records_dict'] = json.dumps(patient_records_dict)
     context['patient_yearly_dict'] = json.dumps(patient_yearly_dict)
-    context['all_amount_yearly_dict'] = json.dumps(all_amount_yearly_dict)
-    context['all_patient_yearly_dict'] = json.dumps(all_patient_yearly_dict)
-    
-    return render(request, 'index.html', context)
-    
 
-        # monthWiselabels = []
-        # monthWiseIncomes = []
-        # monthWisePatients = []
-        # min_year = min(monthlyIncomeGrouped.keys())
-        # max_year = max(monthlyIncomeGrouped.keys())
-        
-        # for year in range(min_year, max_year + 1):
-        #     for month in range(1, 13):
-        #         if year == min_year and month not in monthlyIncomeGrouped[min_year].keys(): # don't get any date before clinic open
-        #             continue
-        #         if year > now().year or (year == now().year and month > now().month):   # don't get any future date data
-        #             break
-        #         monthWiselabels.append(f"{monthName[month]}-{year}")
-        #         monthWiseIncomes.append(monthlyIncomeGrouped[year][month])
-        #         monthWisePatients.append(monthlyPatientGrouped[year][month])
-                
-        # context = {
-        #     # year wise earning data
-        #     "monthWiselabels": json.dumps(monthWiselabels),
-        #     "monthWiseIncomes": json.dumps(monthWiseIncomes),
-        #     "monthWisePatients": json.dumps(monthWisePatients),
-        # }
+    # context['all_amount_yearly_dict'] = json.dumps(all_amount_yearly_dict)
+    # context['all_patient_yearly_dict'] = json.dumps(all_patient_yearly_dict)
+    return render(request, 'index.html', context)
 
 
 @require_http_methods(["GET"])

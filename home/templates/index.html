@@ -120,9 +120,6 @@
                       <form class="form-inline" id="filter_form">
                         <div class="form-group" style="margin-left:20px;">
                           <select class="form-control" name="clinic" id="clinic">
-                            {% if request.user.is_superuser %}
-                              <option value="0">All</option>
-                            {% endif %}
                             {% for cl in clinics %}
                               <option value="{{cl.0}}">{{cl.1}}</option>
                             {% endfor %}
@@ -138,7 +135,7 @@
                         </div>
 
                         <div class="form-group" style="margin-left:20px;">
-                          <button class="btn cb" type="button">
+                          <button class="btn cb" type="submit">
                             <i class="fas fa-search fa-sm custome-color-white"></i> Filter
                           </button>
                         </div>
@@ -376,13 +373,7 @@
     Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
     Chart.defaults.global.defaultFontColor = '#858796';
     
-    {% if request.user.is_superuser %}
-    const clinic = "0"
-    {% elif request.user.is_admin %}
-    const clinic = "{{request.user.clinic_id}}"
-    {% endif %}
-    const form = document.getElementById('filter_form');
-
+    const filter_form = document.getElementById('filter_form');
     const genderPieChart = document.getElementById("GenderWisePieChart");
     const agePieChart = document.getElementById("AgeWisePieChart");
     
@@ -392,6 +383,7 @@
     const incomeBarChart = document.getElementById("incomeBarChart");
     const patientBarChart = document.getElementById("patientBarChart");
 
+    const clinic = "{{default_clinic}}"
     const month_name = {{ month_name|safe }}
     const gender_label = {{ gender_label|safe }}
     const gender_values = {{ gender_values|safe }}
@@ -401,11 +393,17 @@
     const age_values = {{ age_values|safe }}
 
     const amount_records_dict = {{ amount_records_dict|safe }}
-    const amount_yearly_dict = {{ amount_yearly_dict|safe }}
     const patient_records_dict = {{ patient_records_dict|safe }}
+    
+    const amount_yearly_dict = {{ amount_yearly_dict|safe }}
     const patient_yearly_dict = {{ patient_yearly_dict|safe }}
-    const all_amount_yearly_dict = {{all_amount_yearly_dict|safe}}
-    const all_patient_yearly_dict = {{all_patient_yearly_dict|safe}}
+    
+    var pieChart1 = "gova";
+    var pieChart2 = "gova";
+    var barChart1 = "gova";
+    var barChart2 = "gova";
+    var lineChart1 = "gova";
+    var lineChart2 = "gova";
 
     function number_format(number, decimals, dec_point, thousands_sep){
       // *     example: number_format(1234.56, 2, ',', ' ');
@@ -435,7 +433,7 @@
 
     // Pie Chart Example
     function circleChart(label, values, element){
-      let pieChart = new Chart(element, {
+      let chartVar = new Chart(element, {
         type: 'doughnut',
         data: {
           labels: label,
@@ -464,10 +462,11 @@
           cutoutPercentage: 80,
         },
       });
+      return chartVar;
     }
 
     function drawLineCharts(labels, values, label, element, label_end=''){
-      let lineChart = new Chart(element, {
+      let chartVar = new Chart(element, {
         type: 'line',
         data: {
           labels: labels,
@@ -507,12 +506,12 @@
                 drawBorder: false
               },
               ticks: {
-                maxTicksLimit: 12 
+                maxTicksLimit: 31
               }
             }],
             yAxes: [{
               ticks: {
-                maxTicksLimit: 12,
+                maxTicksLimit: 10,
                 padding: 10,
               },
               gridLines: {
@@ -552,9 +551,8 @@
       });
     }
     
-
     function drawBarCharts(labels, values, label, element, label_end=''){
-      let barChart = new Chart(element, {
+      let chartVar = new Chart(element, {
         type: 'bar',
         data: {
           labels: labels,
@@ -585,7 +583,7 @@
                 drawBorder: false
               },
               ticks: {
-                maxTicksLimit: 12
+                maxTicksLimit: 31
               },
               maxBarThickness: 25
             }],
@@ -631,68 +629,95 @@
       });
     }
 
+    /*console.log(amount_records_dict)*/
+    document.addEventListener("DOMContentLoaded", function() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+      const day = String(now.getDate()).padStart(2, '0');        // Days are 0-indexed
 
-    document.addEventListener("DOMContentLoaded", function(){
-      if (clinic=="0"){
-        d = all_amount_yearly_dict
-        d2 = all_patient_yearly_dict
+      /* default monthly of current year data*/
+      let d = {}
+      let d2 = {}
+      for (let k=1;k<=now.getMonth()+1;k++){
+        mn = month_name[k]
+        d[mn] = 0
+        d2[mn] = 0
+        my = String(k).padStart(2, '0')+"-"+year;
+
+        for (let i=1;i<=31;i++){
+          date = String(i).padStart(2, '0')+"-"+my;
+          if (amount_records_dict[clinic].hasOwnProperty(date)) {
+            d[mn] = d[mn] + amount_records_dict[clinic][date]
+            d2[mn] = d2[mn] + patient_records_dict[clinic][date]
+          }
+        }
       }
-      else{
-        d = amount_yearly_dict[clinic]
-        d2 = patient_yearly_dict[clinic]
-      }
+      lineChart1 = drawLineCharts(Object.keys(d), Object.values(d), "Monthly Earnings", incomeLineChart, label_end=' ₹')
+      lineChart2 = drawLineCharts(Object.keys(d2), Object.values(d2), "Monthly Patients", patientLineChart)
+      barChart1 = drawBarCharts(Object.keys(d), Object.values(d), "Monthly Earnings", incomeBarChart, label_end=' ₹')
+      barChart2 = drawBarCharts(Object.keys(d2), Object.values(d2), "Monthly Patients", patientBarChart)
+      pieChart1 = circleChart(gender_label, gender_values, genderPieChart)
+      pieChart2 = circleChart(age_label, age_values, agePieChart)
+      /* end default monthly of current year data */
 
-      drawLineCharts(Object.keys(d), Object.values(d), "Yearly Earnings", incomeLineChart, label_end=' ₹')
-      drawLineCharts(Object.keys(d2), Object.values(d2), "Yearly Patients", patientLineChart)
-
-      drawBarCharts(Object.keys(d), Object.values(d), "Yearly Earnings", incomeBarChart, label_end=' ₹')
-      drawBarCharts(Object.keys(d2), Object.values(d2), "Yearly Patients", patientBarChart)
-
-      circleChart(gender_label, gender_values, genderPieChart)
-      circleChart(age_label, age_values, agePieChart)
-
-      
-      form.addEventListener('submit', function(event) {
+      /* on form submit */
+      filter_form.addEventListener('submit', function(event) {
         event.preventDefault();
         let cl = document.getElementById('clinic').value;
         let fl = document.getElementById('filter').value;
-
-        // for specific clinic
-        if (cl == clinic){
-          if(filter=='all_monthly'){
-            
-          }
-          else if(filter=='current_year_monthly'){
-            
-          }
-          else if(filter=='current_month_daily'){
-            
-          }
-          else{ //all yearly
-            d = amount_yearly_dict[clinic]
-            d2 = patient_yearly_dict[clinic]
-          }
-        }
-        else{ // for all
-          if(filter=='all_monthly'){
-            
-          }
-          else if(filter=='current_year_monthly'){
-            
-          }
-          else if(filter=='current_month_daily'){
-            
-          }
-          else{ //all yearly
-            d = all_amount_yearly_dict
-            d2 = all_patient_yearly_dict
-          }
-        }
+        let lbe = ""
+        let lbp = ""
+        let d = {}
+        let d2 = {}
         
-        drawLineCharts(Object.keys(amount_yearly_dict), Object.values(amount_yearly_dict), "Monthly Earnings", incomeLineChart)
+        if(fl=='current_year_monthly'){
+          for (let k=1;k<=now.getMonth()+1;k++){
+            mn = month_name[k]
+            d[mn] = 0
+            d2[mn] = 0
+            my = String(k).padStart(2, '0')+"-"+year;
+
+            for (let i=1;i<=31;i++){
+              date = String(i).padStart(2, '0')+"-"+my;
+              if (amount_records_dict[cl].hasOwnProperty(date)) {
+                d[mn] = d[mn] + amount_records_dict[cl][date]
+                d2[mn] = d2[mn] + patient_records_dict[cl][date]
+              }
+            }
+          }
+          lbe = "Monthly Earnings"
+          lbp = "Monthly Patients"
+        }
+        else if(fl=='current_month_daily'){
+          for (let i=1;i<=now.getDate();i++){
+            date = String(i).padStart(2, '0')+"-"+month+"-"+year;
+            d[date] = 0
+            d2[date] = 0
+            if (amount_records_dict[cl].hasOwnProperty(date)) {
+              d[date] = amount_records_dict[cl][date]
+              d2[date] = patient_records_dict[cl][date]
+            }
+          }
+          lbe = "Daily Earnings"
+          lbp = "Daily Patients"
+        }
+        else{ // yearly
+          d = amount_yearly_dict[cl]
+          d2 = patient_yearly_dict[cl]
+          lbe = "Yearly Earnings"
+          lbp = "Yearly Patients"
+        }
+        /*lineChart1.destroy()
+        lineChart2.destroy()
+        barChart1.destroy()
+        barChart2.destroy()*/
+        drawLineCharts(Object.keys(d), Object.values(d), lbe, incomeLineChart, chartVar=lineChart1, label_end=' ₹')
+        drawLineCharts(Object.keys(d2), Object.values(d2), lbp, patientLineChart, chartVar=lineChart2)
+        drawBarCharts(Object.keys(d), Object.values(d), lbe, incomeBarChart, chartVar=barChart1, label_end=' ₹')
+        drawBarCharts(Object.keys(d2), Object.values(d2), lbp, patientBarChart, chartVar=barChart2)
       })
     });
 
   </script>
-
 {% endblock %}
