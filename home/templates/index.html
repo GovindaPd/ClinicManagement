@@ -214,7 +214,7 @@
                                             <i class="fas fa-circle text-info"></i> Other
                                         </span>
                                         <span class="mr-2">
-                                            <i class="fas fa-circle text-warning"></i> Unknown
+                                            <i class="fas fa-circle text-danger"></i> Unknown
                                         </span>
                                     </div>
                                 </div>
@@ -397,13 +397,6 @@
     
     const amount_yearly_dict = {{ amount_yearly_dict|safe }}
     const patient_yearly_dict = {{ patient_yearly_dict|safe }}
-    
-    var pieChart1 = "gova";
-    var pieChart2 = "gova";
-    var barChart1 = "gova";
-    var barChart2 = "gova";
-    var lineChart1 = "gova";
-    var lineChart2 = "gova";
 
     function number_format(number, decimals, dec_point, thousands_sep){
       // *     example: number_format(1234.56, 2, ',', ' ');
@@ -549,6 +542,7 @@
           }
         }
       });
+      return chartVar;
     }
     
     function drawBarCharts(labels, values, label, element, label_end=''){
@@ -627,6 +621,7 @@
           }
         }
       });
+      return chartVar;
     }
 
     /*console.log(amount_records_dict)*/
@@ -641,24 +636,26 @@
       let d2 = {}
       for (let k=1;k<=now.getMonth()+1;k++){
         mn = month_name[k]
+        /*mn = month_name[k] + "-" + year*/
+        my = String(k).padStart(2, '0')+"-"+year;
         d[mn] = 0
         d2[mn] = 0
-        my = String(k).padStart(2, '0')+"-"+year;
-
+        
         for (let i=1;i<=31;i++){
           date = String(i).padStart(2, '0')+"-"+my;
+          /*date = String(i).padStart(2, '0') + "-" + mn;*/
           if (amount_records_dict[clinic].hasOwnProperty(date)) {
             d[mn] = d[mn] + amount_records_dict[clinic][date]
             d2[mn] = d2[mn] + patient_records_dict[clinic][date]
           }
         }
       }
-      lineChart1 = drawLineCharts(Object.keys(d), Object.values(d), "Monthly Earnings", incomeLineChart, label_end=' ₹')
-      lineChart2 = drawLineCharts(Object.keys(d2), Object.values(d2), "Monthly Patients", patientLineChart)
-      barChart1 = drawBarCharts(Object.keys(d), Object.values(d), "Monthly Earnings", incomeBarChart, label_end=' ₹')
-      barChart2 = drawBarCharts(Object.keys(d2), Object.values(d2), "Monthly Patients", patientBarChart)
-      pieChart1 = circleChart(gender_label, gender_values, genderPieChart)
-      pieChart2 = circleChart(age_label, age_values, agePieChart)
+      var lineChart1 = drawLineCharts(Object.keys(d), Object.values(d), "Monthly Earnings", incomeLineChart, label_end=' ₹')
+      var lineChart2 = drawLineCharts(Object.keys(d2), Object.values(d2), "Monthly Patients", patientLineChart)
+      var barChart1 = drawBarCharts(Object.keys(d), Object.values(d), "Monthly Earnings", incomeBarChart, label_end=' ₹')
+      var barChart2 = drawBarCharts(Object.keys(d2), Object.values(d2), "Monthly Patients", patientBarChart)
+      var pieChart1 = circleChart(gender_label, gender_values, genderPieChart)
+      var pieChart2 = circleChart(age_label, age_values, agePieChart)
       /* end default monthly of current year data */
 
       /* on form submit */
@@ -708,12 +705,12 @@
           lbe = "Yearly Earnings"
           lbp = "Yearly Patients"
         }
-        /*
+        
         lineChart1.destroy()
         lineChart2.destroy()
         barChart1.destroy()
         barChart2.destroy()
-        */
+        
         lineChart1 = drawLineCharts(Object.keys(d), Object.values(d), lbe, incomeLineChart, label_end=' ₹')
         lineChart2 = drawLineCharts(Object.keys(d2), Object.values(d2), lbp, patientLineChart)
         barChart1 = drawBarCharts(Object.keys(d), Object.values(d), lbe, incomeBarChart, label_end=' ₹')
