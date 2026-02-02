@@ -21,10 +21,11 @@ from django.contrib.auth.models import Group, Permission
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from cities_light.models import Country, Region, City
 
-from .models import  User, Clinic, Patient, Prescription, Notification, SeenNotification
+from .models import  *
 from .custom_token_generator import TokenGenerator
 from .serializers import RegionSerializers, CitySerializers
 from .secret_variables import *
+from .forms import *
 
 import os
 import json
@@ -1454,6 +1455,17 @@ def get_users(request):
             )
         return JsonResponse({'data': users}, status=200) 
     return JsonResponse({'data': []}, status=400)
+
+
+def ckView(request):
+    if request.method == 'POST':
+        form = CkForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('post_list')
+    else:
+        form = CkForm()
+    return render(request, 'ck_forms.html', {'form': form})
 
 
 # content_type = ContentType.objects.get_for_model(MyModel)

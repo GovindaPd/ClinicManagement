@@ -53,6 +53,9 @@ urlpatterns = [
 
     path('country-states/', views.country_states, name='country_states'),
     path('state-cities/<int:region>/', views.state_cities, name='state_cities'),
+
+    #ckeditor example
+    path('ckeditor/', views.ckView, name='ck_view'),
 ]
 
 # from django.contrib.auth import views as auth_views

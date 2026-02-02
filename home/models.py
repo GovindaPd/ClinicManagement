@@ -5,6 +5,9 @@ from django.core.validators import RegexValidator, MinValueValidator, MaxValueVa
 from django.core.files.storage import default_storage
 from django.utils import timezone
 
+# fro ckeditor example
+from django_ckeditor_5.fields import CKEditor5Field
+
 from cities_light.models import Region, City
 from random import randint
 from datetime import timedelta
@@ -213,6 +216,14 @@ class SeenNotification(models.Model):
     
     def __str__(self):
         return f"{self.seen_by.username} senn notification: {self.note.id}"
+
+
+# example ckeditor model
+class CkModel(models.Model):
+    author = models.CharField('Title', max_length=200)
+    text = CKEditor5Field('Text', config_name='extends')
+
+
 
     
 # class RepetedAttempt(models.Model):

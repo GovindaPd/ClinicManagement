@@ -46,3 +46,6 @@ admin.site.register(Patient)
 admin.site.register(Prescription)
 admin.site.register(Notification)
 admin.site.register(SeenNotification)
+
+#ckeditor example
+admin.site.register(CkModel)
