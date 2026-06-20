@@ -1,0 +1,235 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="nav-container" style="display: flex; gap: 10px; justify-content: center;">
+            <button class="cnav-btn" onclick="window.history.back()" title="Back"><i class="fa fa-arrow-left"></i></button>
+            <button class="cnav-btn" onclick="window.history.forward()" title="Forward"><i class="fa fa-arrow-right"></i></button>
+            <h2 class="mb-0 custome-color-dark">Update BahiKhata</h2>  
+        </div>
+    </div>
+    <hr>
+
+    <div id="clinic-from-div">
+        <div class="justify-content-center">
+            <form method="POST" class="clinic_form">
+                {% csrf_token %}
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" id="product_name" placeholder="Name" style="width: 100%;" maxlength="250"
+                            oninput="checkUnique(this)" required value="{{record.name}}">
+                        <ul id="suggestions"></ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-control" name="amount" placeholder="100" style="width: 100%;" required value="{{record.amount}}">
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Status</label>
+                        <select id="status" class="form-control" name="payment_status" style="width: 100%;">
+                            <option value="paid" {% if record.payment_status == 'paid' %}selected{% endif %}>Paid</option>
+                            <option value="pending" {% if record.payment_status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="overdue" {% if record.payment_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" name="created_at" value="{{ record.created_at|date:'Y-m-d' }}" required style="width: 100%;">
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="4" style="width: 100%;">{{record.notes}}</textarea>
+                    </div>
+                </div>
+                
+                <div class="row" style="margin-top: 20px; margin-bottom: 20px; padding-left:10px;">
+                    <button class="btn cb" name="submit_clinic_details" type="submit" style="width: 10rem;">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* select field javascript*/
+        document.addEventListener("DOMContentLoaded", () => {
+            const stateSelect = document.getElementById('clinic_state');
+            const citySelect = document.getElementById('clinic_city');
+            
+            // Fetch states when the page loads or state field is clicked
+            stateSelect.addEventListener('click', () => {
+                if (stateSelect.options.length > 1) return; // Prevent multiple fetches
+                fetch("{% url 'country_states' %}") 
+                    .then(response => response.json())
+                    .then(states => {
+                        // Populate state options
+                        states['region'].forEach(state => {
+                            const option = document.createElement('option');
+                            option.value = state.id;
+                            option.textContent = state.name;
+                            stateSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching states:', error));
+            });
+        
+            // Fetch cities based on selected state
+            stateSelect.addEventListener('change', () => {
+                const stateId = stateSelect.value;
+                citySelect.innerHTML = '<option value="">Select a city</option>'; // Reset city options
+                if (!stateId) {
+                    citySelect.disabled = true;
+                    return;
+                }
+                
+                fetch(`/state-cities/${stateId}`)
+                    .then(response => response.json())
+                    .then(cities => {
+                        // Populate city options
+                        cities['cities'].forEach(city => {
+                            const option = document.createElement('option');
+                            option.value = city.id;
+                            option.textContent = city.name;
+                            citySelect.appendChild(option);
+                        });
+                        citySelect.disabled = false;
+                    })
+                    .catch(error => console.error('Error fetching cities:', error));
+            });
+        });
+
+        let usernameTimeout;
+        function checkUnique(element){
+            clearTimeout(usernameTimeout);
+            let field = null;
+            let value = null;
+            let error = null;
+            if (element.name == 'clinic_name'){
+                field = element.name
+                value = element.value
+                error = $("#clinicname_error")
+                
+                if (value.length < 6) {
+                    element.setCustomValidity('Clinic_name should be greator then 5 characters.');
+                    error.hide()
+                }
+                else {
+                    element.setCustomValidity('');
+                    usernameTimeout = setTimeout(function () {
+                        $.ajax({
+                            url: "{% url 'check_unique' %}",
+                            type: "GET",
+                            data: { 'field': field, 'value':value },
+                            success: function(response) {
+                                if (response.exists==true) {
+                                    error.css('color','red')
+                                    error.html(response.message)
+                                    error.show();
+                                } else if(response.exists==false) {
+                                    error.css('color','green')
+                                    error.html(response.message)
+                                    error.show()
+                                }
+                            }
+                        });
+                    }, 500);
+                }
+            }
+            element.reportValidity();
+        }
+    
+    function validateInput(input) {
+        const value = input.value.trim();
+        const name = input.name.toLowerCase(); // fallback if needed
+
+        let isValid = true;
+        let message = '';
+
+        // Email
+        if (name == 'email') {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            isValid = emailPattern.test(value);
+            message = isValid ? '' : 'Invalid email format.';
+        }
+        // Phone Number (10 digits)
+        else if (name == 'number') {
+            const phonePattern = /^[6-9]\d{9}$/;
+            isValid = phonePattern.test(value);
+            message = isValid ? '' : 'Invalid phone number.';
+        }
+        // Pincode (6-digit number)
+        else if (name == 'pincode') {
+            const pincodePattern = /^\d{6}$/;
+            isValid = pincodePattern.test(value);
+            message = isValid ? '' : 'Invalid pincode.';
+        }
+        // Address, State, City, Specializations: basic non-empty + character check
+        else if (['address', 'state', 'city'].includes(name)) {
+            isValid = /^[a-zA-Z0-9\s,.-]+$/.test(value) && value.length >= 3;
+            message = isValid ? '' : 'Invalid characters or too short.';
+        }
+
+        // Show or clear validation message
+        let errorEl = input.nextElementSibling;
+        if (!errorEl || !errorEl.classList.contains('error-message')) {
+            errorEl = document.createElement('div');
+            errorEl.className = 'error-message';
+            errorEl.style.color = 'red';
+            errorEl.style.fontSize = '0.8rem';
+            input.parentNode.insertBefore(errorEl, input.nextSibling);
+        }
+
+        errorEl.textContent = message;
+        input.style.borderColor = isValid ? '' : 'red';
+    }
+
+</script>
+<script>
+const listProducts = [
+  'item 1',
+  'item 2',
+  'item 3',
+  'product x',
+  'product y',
+  'xyz'
+];
+
+const input = document.getElementById('product_name');
+const suggestions = document.getElementById('suggestions');
+
+input.addEventListener('input', function () {
+  const value = this.value;
+
+  // Get text after the last comma
+  const currentTerm = value.split(',').pop().trim().toLowerCase();
+
+  suggestions.innerHTML = '';
+
+  if (!currentTerm) return;
+
+  const matches = listProducts.filter(item =>
+    item.toLowerCase().includes(currentTerm)
+  );
+
+  matches.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item;
+
+    li.addEventListener('click', () => {
+      const parts = value.split(',');
+
+      // Replace current term with selected item
+      parts[parts.length - 1] = ' ' + item;
+
+      input.value = parts.join(',').replace(/^ /, '') + ', ';
+      suggestions.innerHTML = '';
+    });
+
+    suggestions.appendChild(li);
+  });
+});
+</script>
+{% endblock %}

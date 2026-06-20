@@ -1,0 +1,27 @@
+#cache file
+__pycache__/
+*.pyc
+#environment files
+.env
+.env.prod
+#git files
+.git
+.gitignore
+# log files
+*.log
+# migrations files
+*/migrations/
+migrations/
+#database and system files
+db.sqlite3
+.DS_Store
+# staticfiles
+/static/
+/media/
+# fixture files
+# fixtures/
+#nginx files
+nginx/
+.dockerignore
+Dockerfile
+docker-compose.yml

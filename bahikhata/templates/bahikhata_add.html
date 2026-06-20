@@ -1,0 +1,100 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="nav-container" style="display: flex; gap: 10px; justify-content: center;">
+            <button class="cnav-btn" onclick="window.history.back()" title="Back"><i class="fa fa-arrow-left"></i></button>
+            <button class="cnav-btn" onclick="window.history.forward()" title="Forward"><i class="fa fa-arrow-right"></i></button>
+            <h2 class="mb-0 custome-color-dark">Add BahiKhata</h2>  
+        </div>
+    </div>
+    <hr>
+
+    <div id="clinic-from-div">
+        <div class="justify-content-center">
+            <form method="POST" class="clinic_form">
+                {% csrf_token %}
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" id="product_name" placeholder="Name" style="width: 100%;" maxlength="250"
+                            oninput="checkUnique(this)" required>
+                        <ul id="suggestions"></ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-control" name="amount" placeholder="100" style="width: 100%;" required>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Status</label>
+                        <select id="status" class="form-control" name="payment_status" style="width: 100%;">
+                            <option value="paid">Paid</option>
+                            <option value="pending">Pending</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" name="created_at" value="{{today_date}}" required style="width: 100%;">
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-sm-6">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="4" style="width: 100%;"></textarea>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 20px; margin-bottom: 20px; padding-left:10px;">
+                    <button class="btn cb" name="submit_clinic_details" type="submit" style="width: 10rem;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    const listProducts = [
+    'item 1',
+    'item 2',
+    'item 3',
+    'product x',
+    'product y',
+    'xyz'
+    ];
+
+    const input = document.getElementById('product_name');
+    const suggestions = document.getElementById('suggestions');
+
+    input.addEventListener('input', function () {
+    const value = this.value;
+
+    // Get text after the last comma
+    const currentTerm = value.split(',').pop().trim().toLowerCase();
+
+    suggestions.innerHTML = '';
+
+    if (!currentTerm) return;
+
+    const matches = listProducts.filter(item =>
+        item.toLowerCase().includes(currentTerm)
+    );
+
+    matches.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+
+        li.addEventListener('click', () => {
+        const parts = value.split(',');
+
+        // Replace current term with selected item
+        parts[parts.length - 1] = ' ' + item;
+
+        input.value = parts.join(',').replace(/^ /, '') + ', ';
+        suggestions.innerHTML = '';
+        });
+
+        suggestions.appendChild(li);
+    });
+    });
+</script>
+{% endblock %}

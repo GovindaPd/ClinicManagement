@@ -9,22 +9,25 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-# *.sqlite3
-# db.sqlite3
+
+# Database files
+*.sqlite3
+db.sqlite3
 
 # Media / uploaded files
 /media
 /media/*
-# *.jpg
-# *.png
-# *.mp4
+
 
 # Static files (if you're collecting static here)
-# staticfiles/
-static/
+/static
+/static/*
+
+#migration files
+/migrations/*
+*/migrations/__pycache__/
 
 # Local settings (optional, if you separate secrets)
-local_settings.py
 .env
 .env.*
 
@@ -34,7 +37,7 @@ local_settings.py
 *.sublime-project
 *.sublime-workspace
 
-# OS generated files
+# OS generated files or macos specific files
 .DS_Store
 Thumbs.db
 
@@ -49,11 +52,3 @@ venv/
 env/
 ENV/
 .venv/
-
-# Migrations (optional, usually you want to keep these)
-# But you can ignore auto-generated ones temporarily if needed
-# */migrations/*.py
-*/migrations/__pycache__/
-
-# Node stuff (if you’re using npm/yarn for frontend)
-node_modules/

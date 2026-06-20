@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [    
     path('', views.index, name='index'),
     path('index/', views.index),
+    path('health/', views.health_check, name='health_check'),
     path('login/', views.login_in, name='login'),
     path('logout/', views.logout_user, name='logout'),
     
@@ -54,8 +55,6 @@ urlpatterns = [
     path('country-states/', views.country_states, name='country_states'),
     path('state-cities/<int:region>/', views.state_cities, name='state_cities'),
 
-    #ckeditor example
-    path('ckeditor/', views.ckView, name='ck_view'),
 ]
 
 # from django.contrib.auth import views as auth_views

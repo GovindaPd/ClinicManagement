@@ -6,5 +6,6 @@ class HomeConfig(AppConfig):
     name = 'home'
 
     def ready(self):
+        import home.signals
         import home.templatetags.custom_filters
         return super().ready()

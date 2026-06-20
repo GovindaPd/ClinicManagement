@@ -1,14 +1,11 @@
-#internal imports
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.core.files.storage import default_storage
-from django.utils import timezone
 
-# fro ckeditor example
-from django_ckeditor_5.fields import CKEditor5Field
 
 from cities_light.models import Region, City
+from django.utils import timezone
 from random import randint
 from datetime import timedelta
 import uuid
@@ -218,13 +215,11 @@ class SeenNotification(models.Model):
         return f"{self.seen_by.username} senn notification: {self.note.id}"
 
 
-# example ckeditor model
-class CkModel(models.Model):
-    author = models.CharField('Title', max_length=200)
-    text = CKEditor5Field('Text', config_name='extends')
+class BlockedIP(models.Model):
+    ip_address = models.GenericIPAddressField(unique=True)
 
-
-
+    def __str__(self):
+        return f"Blocked IP: {self.ip_address}"
     
 # class RepetedAttempt(models.Model):
 #     ip_address = models.GenericIPAddressField()
@@ -239,39 +234,3 @@ class CkModel(models.Model):
 #         cutoff = timezone.now() - timedelta(minutes=minutes)
 #         recent = cls.objects.filter(ip_address=ip, timestamp__gte=cutoff).count()
 #         return recent >= limit
-
-
-# class FieldVisibility(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     visible_fields = models.JSONField(default=lambda: ["name", "age", "contact"])
-
-    # def __str__(self):
-    #     return f"Visibility settings for {self.user.username}"
-
-
-# from django import forms
-# from .models import FieldVisibility
-
-# class FieldVisibilityForm(forms.ModelForm):
-#     FIELDS_CHOICES = [
-#         ("name", "Name"),
-#         ("age", "Age"),
-#         ("contact", "Contact"),
-#         ("address", "Address"),
-#         ("email", "Email"),
-#         ("phone", "Phone"),
-#         ("dob", "Date of Birth"),
-#         ("gender", "Gender"),
-#         ("medical_history", "Medical History"),
-#         ("prescriptions", "Prescriptions"),
-#     ]
-
-#     visible_fields = forms.MultipleChoiceField(
-#         choices=FIELDS_CHOICES,
-#         widget=forms.CheckboxSelectMultiple,
-#         required=False
-#     )
-
-#     class Meta:
-#         model = FieldVisibility
-#         fields = ["visible_fields"]

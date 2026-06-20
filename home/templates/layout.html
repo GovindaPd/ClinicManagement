@@ -329,6 +329,14 @@
                 </a>
             </li>
           {% endif %}
+          {% if perms.bahikhata.view_bahikhata %}
+            <li class="nav-item">
+                <a class="nav-link " href="{% url 'bahikhata' %}" aria-expanded="true" >
+                    <i class="fas fa-book"></i>
+                    <span>BahiKhata</span>
+                </a>
+            </li>
+          {% endif %}
           {% if perms.home.view_notification %}
             <li class="nav-item">
                 <a class="nav-link " href="{% url 'notifications' %}" aria-expanded="true" >

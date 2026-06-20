@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db import OperationalError, IntegrityError
 from django.db.models import Count, Exists, OuterRef, F, Q, Sum
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from django.contrib.auth.models import Group, Permission
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from cities_light.models import Country, Region, City
@@ -26,6 +27,7 @@ from .custom_token_generator import TokenGenerator
 from .serializers import RegionSerializers, CitySerializers
 from .secret_variables import *
 from .forms import *
+from .utils import BruteForceLoginProctection
 
 import os
 import json
@@ -83,7 +85,11 @@ def send_welcome_mail(request, user, clinic=None, default_password=None):
         recipient_list=[user.email], 
         fail_silently=True
     )
-    
+
+
+def health_check(request):
+    return JsonResponse({"status": "ok"}, status=200)
+
 
 def country_states(request):
     state = Region.objects.filter(country=1).order_by('name')
@@ -113,6 +119,7 @@ def state_cities(request, region=None):
 #     return redirect('login')
 
 # rVJhhmm1lWbI
+
 
 # -------------- views start here -----------------
 @require_http_methods(["GET", "POST"])
@@ -1457,15 +1464,6 @@ def get_users(request):
     return JsonResponse({'data': []}, status=400)
 
 
-def ckView(request):
-    if request.method == 'POST':
-        form = CkForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('post_list')
-    else:
-        form = CkForm()
-    return render(request, 'ck_forms.html', {'form': form})
 
 
 # content_type = ContentType.objects.get_for_model(MyModel)
