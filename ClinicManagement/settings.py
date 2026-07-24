@@ -183,6 +183,7 @@ CSRF_COOKIE_SECURE = True  # Enable for secure CSRF cookies
 #     ],
 # }
 
+<<<<<<< HEAD
 # SIMPLE_JWT = {
 #     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
 #     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -190,3 +191,14 @@ CSRF_COOKIE_SECURE = True  # Enable for secure CSRF cookies
 #     'BLACKLIST_AFTER_ROTATION': True,
 #     # 'AUTH_HEADER_TYPES': ('Bearer',),  # Token type prefix in headers
 # }
+=======
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_HOST = 'mail.justapay.in'
+EMAIL_PORT = 465
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = ''
+# EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+>>>>>>> origin/master
